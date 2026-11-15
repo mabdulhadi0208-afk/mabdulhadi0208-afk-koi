@@ -77,7 +77,7 @@ const label=()=>pretty(S.shortcut);
 const norm=a=>String(a).replace('CommandOrControl','Command').toLowerCase();
 const modOnly=a=>typeof a==='string'&&/^(Command|Control|Alt|Shift)(\+(Command|Control|Alt|Shift))+$/.test(a);
 const validAcc=a=>modOnly(a)||typeof a==='string'&&/^((Command|Control|Alt|Shift)\+)*([A-Z0-9]|F\d{1,2}|Space|Return|Tab|Backspace|Up|Down|Left|Right|[-=,./;'`\[\]\\])$/.test(a)&&(/\+/.test(a)||/^F\d{1,2}$/.test(a));
-let hookOk=false,hookLoaded=false,chords=[],recording=false;
+let hookOk=false,hookLoaded=false,chords=[],recording=false,altHeld=()=>true;
 function canRegister(acc){if(modOnly(acc)){startHook(true);return hookLoaded}globalShortcut.unregisterAll();let ok=false;try{ok=globalShortcut.register(acc,()=>{});if(ok)globalShortcut.unregister(acc)}catch(e){}return ok}
 function launchApp(p,name){S.usage[name]=(S.usage[name]||0)+1;save();execFile('open',['-a',p])}
 
@@ -92,21 +92,22 @@ function startHook(prompt){
 (function(){try{
   const {uIOhook}=require('uiohook-napi');uio=uIOhook;hookLoaded=true;
   const M={56:'Alt',3640:'Alt',29:'Control',3613:'Control',42:'Shift',54:'Shift',3675:'Command',3676:'Command'};
-  const held=new Set();let dirty=false,fired=false;
+  const held=new Set();let dirty=false,fired=false;altHeld=()=>[...held].some(x=>x.startsWith('Alt'));
   const cur=()=>{const n=new Set([...held].map(x=>x.split(':')[0]));return ['Command','Control','Alt','Shift'].filter(x=>n.has(x)).join('+')};
   uIOhook.on('keydown',e=>{const m=M[e.keycode];
     if(!m){dirty=true;return}
     held.add(m+':'+e.keycode);
     if(!dirty&&!fired&&!recording){const acc=cur();if(acc.includes('+')){const c=chords.find(c=>c.acc===acc);if(c){fired=true;c.fn()}}}});
-  uIOhook.on('keyup',e=>{const m=M[e.keycode];if(!m)return;held.delete(m+':'+e.keycode);if(held.size===0){dirty=false;fired=false}});
+  uIOhook.on('keyup',e=>{const m=M[e.keycode];if(m==='Alt'&&swActive)swCommit();if(!m)return;held.delete(m+':'+e.keycode);if(held.size===0){dirty=false;fired=false}});
 }catch(e){console.error('key hook unavailable',e&&e.message)}})();
-setInterval(()=>{if(!hookOk&&hookLoaded&&chords.length)startHook(false)},3000);
+setInterval(()=>{if(!hookOk&&hookLoaded&&(chords.length||S.altTab!==false))startHook(false)},3000);
 let regStatus={main:false,hk:[]};
 function tryReg(acc,fn){if(modOnly(acc)){chords=chords.filter(c=>c.acc!==acc);chords.push({acc,fn});return hookOk}try{if(globalShortcut.isRegistered(acc))globalShortcut.unregister(acc);return globalShortcut.register(acc,fn)&&globalShortcut.isRegistered(acc)}catch(e){console.error('reg fail',acc,e&&e.message);return false}}
 function reg(){
   globalShortcut.unregisterAll();chords=[];
   let ok=tryReg(S.shortcut,toggle);
   if(!ok&&S.shortcut!==DEF.shortcut){tryReg(DEF.shortcut,toggle)}/* temporary fallback only; never overwrite the saved shortcut (old instance may still hold it during an update) */
+  if(S.altTab!==false){tryReg('Alt+Tab',()=>swStep(1));tryReg('Alt+Shift+Tab',()=>swStep(-1))}
   regStatus={main:ok,hk:S.hotkeys.map(h=>tryReg(h.acc,()=>launchApp(h.path,h.name)))};
   if(!ok)console.error('main shortcut failed');
 }
@@ -126,7 +127,7 @@ function animateTray(open){
   else tray.setImage(trayFrames[6]);
 }
 function setBadge(on){try{tray&&tray.setTitle(on?' ↑':'')}catch(e){}}
-function popState(){return {theme:S.theme,size:S.size,speed:S.speed,sound:!!S.sound,login:!!app.getLoginItemSettings().openAtLogin,autoDownload:S.autoDownload!==false,shortcut:label(),version:app.getVersion(),upd:updater.snapshot()}}
+function popState(){return {altTab:S.altTab!==false,theme:S.theme,size:S.size,speed:S.speed,sound:!!S.sound,login:!!app.getLoginItemSettings().openAtLogin,autoDownload:S.autoDownload!==false,shortcut:label(),version:app.getVersion(),upd:updater.snapshot()}}
 function sendPop(){if(popWin&&!popWin.isDestroyed())popWin.webContents.send('pop:state',popState())}
 function makePopover(){
   popWin=new BrowserWindow({width:344,height:560,show:false,frame:false,transparent:true,hasShadow:false,resizable:false,movable:false,skipTaskbar:true,alwaysOnTop:true,fullscreenable:false,backgroundColor:'#00000000',
@@ -147,6 +148,56 @@ function hidePopover(){if(!popShown)return;popShown=false;lastPopHide=Date.now()
 function togglePopover(){if(popShown)hidePopover();else if(Date.now()-lastPopHide>220)showPopover()}
 function buildMenu(){sendPop()}
 
+
+// ---------- Alt+Tab window switcher (previews + springy animation) ----------
+let swWin=null,swActive=false,swList=[],swIdx=0,swFallback=null,swBusy=false,mru=[];
+const NO_SW=new Set(['Koi','Electron']);
+function pollFront(){if(S.altTab===false||swActive)return;execFile('osascript',['-e','tell application "System Events" to get name of first application process whose frontmost is true'],{timeout:1500},(e,o)=>{const n=(o||'').trim();if(!e&&n&&!NO_SW.has(n)){mru=[n,...mru.filter(x=>x!==n)].slice(0,40)}})}
+setInterval(pollFront,1200);
+function makeSw(){
+  swWin=new BrowserWindow({show:false,frame:false,transparent:true,hasShadow:false,resizable:false,movable:false,skipTaskbar:true,alwaysOnTop:true,focusable:false,fullscreenable:false,
+    webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,backgroundThrottling:false}});
+  swWin.setAlwaysOnTop(true,'screen-saver');swWin.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true});swWin.setIgnoreMouseEvents(true);
+  swWin.loadFile(path.join(__dirname,'renderer','switcher.html'));
+}
+async function swThumbs(list){
+  try{
+    const {desktopCapturer}=require('electron');
+    const js='ObjC.import("CoreGraphics");const l=ObjC.deepUnwrap(ObjC.castRefToObject($.CGWindowListCopyWindowInfo(17,0)));JSON.stringify(l.filter(w=>w.kCGWindowLayer===0).map(w=>[w.kCGWindowOwnerName,w.kCGWindowNumber]))';
+    const wins=await new Promise(r=>execFile('osascript',['-l','JavaScript','-e',js],{timeout:3000},(e,o)=>{try{r(JSON.parse(o))}catch(x){r([])}}));
+    const src=await desktopCapturer.getSources({types:['window'],thumbnailSize:{width:420,height:280}});
+    const out={},seen=new Set();
+    for(const [owner,num] of wins){if(seen.has(owner))continue;const s=src.find(s=>s.id.startsWith('window:'+num+':'));if(s&&!s.thumbnail.isEmpty()){seen.add(owner);out[owner]=s.thumbnail.toDataURL()}}
+    if(swActive&&swWin&&!swWin.isDestroyed())swWin.webContents.send('sw:thumbs',out);
+  }catch(e){console.error('thumbs',e&&e.message)}
+}
+async function swOpen(){
+  if(swBusy)return;swBusy=true;
+  try{
+    const apps=(await getApps()).filter(a=>a.running&&!NO_SW.has(a.name));
+    if(apps.length<2){swBusy=false;return}
+    apps.sort((a,b)=>{const ia=mru.indexOf(a.name),ib=mru.indexOf(b.name);return (ia<0?99:ia)-(ib<0?99:ib)});
+    swList=apps.slice(0,12);swIdx=1;swActive=true;
+    if(!swWin||swWin.isDestroyed())makeSw();
+    const d=screen.getDisplayNearestPoint(screen.getCursorScreenPoint());swWin.setBounds(d.bounds);
+    const go=()=>{swWin.showInactive();swWin.webContents.send('sw:show',{apps:swList.map(a=>({name:a.name,icon:a.icon})),idx:swIdx,dark:S.theme==='dark'});swThumbs(swList)};
+    if(swWin.webContents.isLoading())swWin.webContents.once('did-finish-load',go);else go();
+    swArm();
+    if(hookOk&&!altHeld())swCommit();
+  }finally{swBusy=false}
+}
+function swArm(){clearTimeout(swFallback);if(!hookOk)swFallback=setTimeout(swCommit,1500)}
+function swStep(d){
+  if(S.altTab===false)return;
+  if(!swActive){swOpen();return}
+  swIdx=(swIdx+d+swList.length)%swList.length;swWin.webContents.send('sw:sel',swIdx);swArm();
+}
+function swCommit(){
+  if(!swActive)return;swActive=false;clearTimeout(swFallback);
+  const a=swList[swIdx];
+  if(swWin&&!swWin.isDestroyed()){swWin.webContents.send('sw:hide');setTimeout(()=>{if(!swActive&&swWin&&!swWin.isDestroyed())swWin.hide()},260)}
+  if(a){S.usage[a.name]=(S.usage[a.name]||0)+1;save();execFile('open',['-a',a.path]);mru=[a.name,...mru.filter(x=>x!==a.name)]}
+}
 // ---------- IPC ----------
 ipcMain.on('koi:hide',()=>hideOverlay());
 ipcMain.handle('pop:get',()=>popState());
@@ -156,6 +207,7 @@ ipcMain.on('pop:set',(_e,k,v)=>{
   else if(k==='size'&&[.85,1,1.2,1.4].includes(+v))S.size=+v;
   else if(k==='speed'&&[.7,1,1.3].includes(+v))S.speed=+v;
   else if(k==='sound')S.sound=!!v;
+  else if(k==='altTab'){S.altTab=!!v;try{reg()}catch(e){}}
   else if(k==='autoDownload')S.autoDownload=!!v;
   else if(k==='login'){S.login=!!v;try{app.setLoginItemSettings({openAtLogin:!!v})}catch(e){}}
   save();
@@ -218,7 +270,7 @@ app.whenReady().then(()=>{
   loadFrames();tray=new Tray(trayFrames[6]);tray.setToolTip('Koi');
   tray.on('click',()=>togglePopover());tray.on('right-click',()=>togglePopover());
   updater.start({app,settings:()=>S,setBadge,onState:()=>sendPop(),saveSkip:v=>{S.skipped=v;save()},beforeQuit:()=>{app.isQuitting=true}});
-  reg();makeOverlay();
+  reg();makeOverlay();if(S.altTab!==false)setTimeout(()=>startHook(true),1500);
   try{const {powerMonitor}=require('electron');['resume','unlock-screen'].forEach(ev=>powerMonitor.on(ev,()=>setTimeout(reg,1500)));}catch(e){}
   setTimeout(reg,3000);setTimeout(reg,9000);
   if(!S.tourSeen)openTour();

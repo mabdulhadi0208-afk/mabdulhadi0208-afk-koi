@@ -57,6 +57,7 @@ body.dk .seg .th{background:rgba(255,255,255,.2);box-shadow:0 3px 10px rgba(0,0,
  <div class="sg it"><span>Size</span><div class="seg" id="s-size"><div class="th"></div><button data-v=".85">S</button><button data-v="1">M</button><button data-v="1.2">B</button><button data-v="1.4">XL</button></div></div>
  <div class="sg it"><span>Motion</span><div class="seg" id="s-speed"><div class="th"></div><button data-v=".7">Soft</button><button data-v="1">Normal</button><button data-v="1.3">Fast</button></div></div>
  <div class="lbl it">General</div>
+ <div class="row it" id="r-alt"><div class="ic">⌥</div>Alt+Tab switcher<div class="tg" id="t-alt"><i></i></div></div>
  <div class="row it" id="r-sound"><div class="ic">♪</div>Sounds<div class="tg" id="t-sound"><i></i></div></div>
  <div class="row it" id="r-login"><div class="ic">⏻</div>Launch at login<div class="tg" id="t-login"><i></i></div></div>
  <div class="row it" id="r-auto"><div class="ic">⇩</div>Auto-download updates<div class="tg" id="t-auto"><i></i></div></div>
@@ -97,7 +98,7 @@ function mkToggle(row,tg,key){const el=$('#'+tg),th=el.querySelector('i');const 
  const upd=on=>{el.classList.toggle('on',!!on);x.t=on?23:3;w.t=22;ap()};
  $('#'+row).onclick=()=>{S[key]=!S[key];upd(S[key]);w.x=34;x.v+=S[key]?220:-220;api&&api.set(key,S[key]);tick()};
  upd.init=on=>{el.classList.toggle('on',!!on);x.x=x.t=on?23:3;ap()};return upd}
-const tSound=mkToggle('r-sound','t-sound','sound'),tLogin=mkToggle('r-login','t-login','login'),tAuto=mkToggle('r-auto','t-auto','autoDownload');
+const tSound=mkToggle('r-sound','t-sound','sound'),tLogin=mkToggle('r-login','t-login','login'),tAuto=mkToggle('r-auto','t-auto','autoDownload'),tAlt=mkToggle('r-alt','t-alt','altTab');
 // hover / press jelly on rows & buttons
 function jelly(el,hov=1.05,tx=5){const s=new Sp(1,300,9.5),x=new Sp(0,300,9.5),q=new Sp(0,300,8.5);
  const ap=()=>{el.style.transform=`translateX(${x.x}px) scale(${s.x*(1+q.x*.04)},${s.x*(1-q.x*.04)})`};s.cb=ap;x.cb=ap;q.cb=ap;
@@ -124,7 +125,7 @@ function fmt(u){return u}
 function render(){
  document.body.classList.toggle('dk',S.theme==='dark');
  $('#ver').textContent='v'+(S.version||'1.0');
- segs.theme(S.theme);segs.size(S.size);segs.speed(S.speed);tSound.init(S.sound);tLogin.init(S.login);tAuto.init(S.autoDownload);
+ segs.theme(S.theme);segs.size(S.size);segs.speed(S.speed);tSound.init(S.sound);tLogin.init(S.login);tAuto.init(S.autoDownload);tAlt.init(S.altTab!==false);
  $('#ki').innerHTML=S.shortcut.split(' ').map(k=>`<kbd>${k}</kbd>`).join('');
  document.querySelector('[data-a=hotkeys] .r').textContent=S.shortcut;
  const u=S.upd||{},pill=$('#pill'),ub=$('#upb');pill.className='pill';
