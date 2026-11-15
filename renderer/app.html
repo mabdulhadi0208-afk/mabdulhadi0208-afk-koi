@@ -140,6 +140,26 @@ body.ov #dim{background:rgba(0,0,0,.08)}
 body.dk.ov #dim{background:rgba(0,0,0,.22)}
 .ic.im{background:transparent!important;box-shadow:none;overflow:visible;filter:drop-shadow(0 4px 8px rgba(20,30,60,.35))}.ic.im:after{display:none}
 .ic.im img{width:100%;height:100%;position:relative;z-index:1;object-fit:contain}
+
+.vchip{font-size:13px;letter-spacing:.2em;text-transform:uppercase;padding:6px 14px;border-radius:99px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);opacity:0;animation:fadeup .8s ease 2s forwards}
+.wn{display:flex;flex-direction:column;gap:16px;width:min(520px,86vw)}
+.wn h2{font-size:30px;font-weight:800;margin-bottom:8px;opacity:0;animation:fadeup .8s ease forwards}
+.wn>div{display:flex;gap:14px;align-items:center;padding:14px 18px;border-radius:18px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(14px);opacity:0;transform:translateY(14px) scale(.96);animation:jel .8s cubic-bezier(.3,1.8,.5,1) forwards}
+.wn em{font-style:normal;font-size:26px}.wn span{font-size:14px;opacity:.9;line-height:1.35}.wn b{display:block;font-size:16px;margin-bottom:2px}
+@keyframes fadeup{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes jel{to{opacity:1;transform:none}}
+.mk{position:absolute;top:0;left:0;right:0;display:flex;flex-direction:column;align-items:flex-end;padding:56px 7vw 0;pointer-events:none}
+.mkb{position:fixed;top:64px;left:0;right:0;height:26px;background:rgba(255,255,255,.14);backdrop-filter:blur(12px);display:flex;justify-content:flex-end;gap:14px;padding:4px 22px;align-items:center}
+.mkb span{width:18px;height:10px;border-radius:3px;background:rgba(255,255,255,.35)}.mkb .mf{background:none;width:auto;height:auto;animation:jel .7s cubic-bezier(.3,2,.5,1) both}
+.mkc{margin-top:42px;width:290px;padding:16px;border-radius:22px;background:rgba(30,30,36,.62);backdrop-filter:blur(26px);border:1px solid rgba(255,255,255,.18);color:#fff;box-shadow:0 30px 70px rgba(0,0,0,.45);transform-origin:90% 0;animation:pop .9s cubic-bezier(.3,1.9,.5,1) both}
+@keyframes pop{from{opacity:0;transform:scale(.6) translateY(-16px)}to{opacity:1;transform:none}}
+.mkc b{font-size:16px;display:block;margin-bottom:10px}.mkc .r{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;margin-top:6px;border-radius:12px;background:rgba(255,255,255,.08);font-size:13px}
+.mkc .r i{font-style:normal}.mkc .r u{text-decoration:none;opacity:.8}.mkc .big{justify-content:center;gap:8px;background:linear-gradient(135deg,#ff7a59,#ff3d7f);font-weight:700}
+.mkc kbd{font:600 11px system-ui;padding:2px 7px;border-radius:6px;background:rgba(255,255,255,.2)}
+.tg{width:34px;height:20px;border-radius:99px;background:rgba(255,255,255,.25);position:relative}.tg:after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff}
+.pbar{height:8px;border-radius:9px;background:rgba(255,255,255,.18);margin:12px 0;overflow:hidden}.pbar em{display:block;height:100%;width:0;background:linear-gradient(90deg,#ff7a59,#ff3d7f);animation:fill 3.2s ease-out forwards}
+@keyframes fill{to{width:100%}}
+.dl-btn{position:fixed;right:18px;bottom:18px;z-index:12;padding:10px 16px;border-radius:99px;background:linear-gradient(135deg,#ff7a59,#ff3d7f);color:#fff;font:700 13px system-ui;text-decoration:none;box-shadow:0 10px 30px rgba(255,61,127,.4);transition:transform .4s cubic-bezier(.3,2,.5,1)}.dl-btn:hover{transform:scale(1.08)}
 </style></head><body>
 <svg width="0" height="0" style="position:absolute"><defs><linearGradient id="gw" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#e4e9fb"/></linearGradient></defs></svg><div class="wall"><div class="pn p1"></div><div class="pn p2"></div><div class="pn p3"></div><div class="pn p4"></div></div>
 <div class="menubar"><b>&#63743;</b><b id="front">Finder</b><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Window</span><span class="sp"></span>
@@ -375,8 +395,10 @@ function stopAudio(fade=.7){clearInterval(chordT);if(MG&&AC){try{MG.gain.cancelS
 const later=(ms,f)=>setTimeout(()=>{if(!cancel)f()},ms);
 function gate(){S.film=true;F.style.display='block';bk.style.transition='none';bk.style.opacity=1;scene.innerHTML='<div class="glow"></div><div class="brand">'+logo(90).replace(/class="(rg|dt)"/g,'')+'<p style="animation:none;opacity:1;font-size:17px;margin-top:4px">The Koi film</p><div class="btns" style="animation:none;opacity:1"><button class="pr" id="g1">▶ Play with sound</button><button id="g0">Play without sound</button></div></div>';$('#g1').onclick=()=>play(true);$('#g0').onclick=()=>play(false)}
 
+const KV=(()=>{const v='__KOI_VERSION__';return v.indexOf('__')===0?'dev':v})();
+const WHATS_NEW=[['🫧','Springy menu-bar popover','A custom jelly panel replaces the stock macOS menu.'],['⌨️','Your own hotkeys','Pick the summon key and bind any app to its own shortcut.'],['⬆️','Auto-update','Koi finds, downloads and swaps itself in the background.'],['🎬','A film that updates with Koi','This intro is rebuilt on every release.']];
 const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
-function say(n,t,d){cap.classList.remove('in');void cap.offsetWidth;cap.querySelector('.n').textContent=n;cap.querySelector('b').textContent=t;cap.querySelector('p').textContent=d;cap.classList.add('in');pg.style.width=(parseInt(n)/11*100)+'%';bell(784,.03,1.4);whoosh(.025)}
+function say(n,t,d){cap.classList.remove('in');void cap.offsetWidth;cap.querySelector('.n').textContent=n;cap.querySelector('b').textContent=t;cap.querySelector('p').textContent=d;cap.classList.add('in');pg.style.width=(parseInt(n)/14*100)+'%';bell(784,.03,1.4);whoosh(.025)}
 function nocap(){cap.classList.remove('in');cap.style.opacity=0}
 function key(t,ms=900){kc.textContent=t;kc.classList.add('in');setTimeout(()=>kc.classList.remove('in'),ms*FS)}
 function fcSet(x,y){fx=x;fy=y;fc.style.transform=`translate(${x}px,${y}px)`;window.dispatchEvent(new PointerEvent('pointermove',{clientX:x,clientY:y}))}
@@ -385,6 +407,12 @@ function click(){const d=document.createElement('div');d.className='ck';d.style.
 function wp(name){const a=APPS.find(x=>x.name===name),i=S.list.indexOf(a),n=S.list.length,an=rad(slotAng(i,n)),mr=(R0+R1)/2*S.size;return[S.cx+Math.cos(an)*mr,S.cy+Math.sin(an)*mr]}
 const cen=el=>{const r=el.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2]};
 const kd=k=>window.dispatchEvent(new KeyboardEvent('keydown',{key:k,code:k==='Space'?'Space':'Key'+k.toUpperCase(),bubbles:true}));
+function MK(k){const bar='<div class="mkb"><span></span><span></span><span class="mf">'+logo(16).replace(/class="(rg|dt)"/g,'')+'</span></div>';
+ const c={pop:'<div class="mkc"><b>Koi</b><div class="r"><i>Theme</i><u>Light | Dark</u></div><div class="r"><i>Size</i><u>S M B XL</u></div><div class="r"><i>Sounds</i><u class="tg"></u></div><div class="r big">Open the fan <kbd>⌥</kbd><kbd>Space</kbd></div></div>',
+ hk:'<div class="mkc"><b>Hotkeys</b><div class="r"><i>Summon</i><kbd>⌥ Space</kbd></div><div class="r"><i>Safari</i><kbd>⌃ ⌥ S</kbd></div><div class="r"><i>Terminal</i><kbd>⌃ ⌥ T</kbd></div><div class="r"><i>Notes</i><kbd>⌃ ⌥ N</kbd></div></div>',
+ up:'<div class="mkc"><b>Update ready</b><div class="r"><i>Koi '+KV+' → next</i></div><div class="pbar"><em></em></div><div class="r big">Restart &amp; update</div></div>'}[k];
+ return '<div class="mk">'+bar+c+'</div>'}
+function winfo(){return KV==='dev'?'Dev build':'Version '+KV}
 async function intro(){
  pad(CH.A,7,.03);startChords();
  scene.innerHTML='<div class="glow"></div><div class="dl"><div class="dr"><div class="di">'+logo(34).replace(/class="(rg|dt)"/g,'')+'</div><div><b>Koi.dmg</b><small id="dls">Downloading… 0%</small></div></div><div class="pb"><i></i></div></div>';
@@ -394,8 +422,11 @@ async function intro(){
  bell(659,.07,2.4);later(160,()=>bell(880,.06,2.4));
  await sleep(900);
  riser(.6,.1);whoosh(.05);later(520,()=>{boom(.75)});[[500,440],[660,523],[820,659]].forEach(([ms,f])=>later(ms,()=>bell(f,.07,2.6)));later(1250,()=>bell(1318,.05,3));later(1900,()=>pad(CH.F.concat([440]),6,.04));
- scene.innerHTML='<div class="glow"></div><div class="brand">'+logo(120)+'<h1>'+KOI(.5)+'</h1><p>Switch apps at the speed of thought.</p></div>';
- await sleep(4300);
+ scene.innerHTML='<div class="glow"></div><div class="brand">'+logo(120)+'<h1>'+KOI(.5)+'</h1><p>Switch apps at the speed of thought.</p><span class="vchip">'+winfo()+'</span></div>';
+ await sleep(3400);
+ scene.innerHTML='<div class="glow"></div><div class="wn"><h2>What’s new in Koi '+(KV==='dev'?'':KV)+'</h2>'+WHATS_NEW.map((w,i)=>'<div style="animation-delay:'+(.3+i*.55)+'s"><em>'+w[0]+'</em><span><b>'+w[1]+'</b>'+w[2]+'</span></div>').join('')+'</div>';
+ bell(880,.05,2);WHATS_NEW.forEach((w,i)=>later(300+i*550,()=>bell(660+i*110,.04,1.6)));
+ await sleep(4000);
  scene.style.transition='opacity 1.2s';scene.style.opacity=0;bk.style.opacity=0;
  await sleep(1500);scene.innerHTML='';scene.style.opacity=1;
 }
@@ -420,14 +451,23 @@ async function tutorial(){
  say('07','Quick actions','Hover an app for New window, Hide and Quit — right where your cursor already is.');
  {const[x,y]=wp('Safari');await glide(x,y,1000);await sleep(900);const ch=$('#chips').children[1];const[cx,cy]=cen(ch);await glide(cx,cy,900);ch.classList.add('fh');click();await sleep(1700);ch.classList.remove('fh')}
  {const[x,y]=wp('Finder');await glide(x,y,800)}
- say('08','Light & dark','Frosted glass in daylight, smoked glass at night.');
+
+ close();await sleep(500);
+ say('08','Menu-bar popover','Click the fish. A custom springy panel — theme, size, motion, sounds, all in one jelly card.');
+ scene.innerHTML=MK('pop');await sleep(4200);
+ say('09','Your hotkeys','Choose the summon key and give any app its own global shortcut.');
+ scene.innerHTML=MK('hk');await sleep(4200);
+ say('10','Auto-update','Koi checks quietly, downloads, then swaps itself in with one click. No reinstall.');
+ scene.innerHTML=MK('up');await sleep(4200);
+ scene.innerHTML='';open();await sleep(900);
+ say('11','Light & dark','Frosted glass in daylight, smoked glass at night.');
  {const b=$('#th button[data-v=d]'),[x,y]=cen(b);await glide(x,y,1100);click();b.click();await sleep(3000)}
- say('09','Sound — off by default','Soft tick tones whenever you want them. One tap to switch on.');
+ say('12','Sound — off by default','Soft tick tones whenever you want them. One tap to switch on.');
  {const b=$('#snd'),[x,y]=cen(b);await glide(x,y,1000);b.classList.add('pulse');await sleep(2600);b.classList.remove('pulse')}
- say('10','Make it yours','Four sizes. Three speeds. The fan re-blooms instantly.');
+ say('13','Make it yours','Four sizes. Three speeds. The fan re-blooms instantly.');
  {const b=$('#ss button[data-v="1.2"]'),[x,y]=cen(b);await glide(x,y,900);S.mx=S.my=0;S.hp=false;click();b.click();await sleep(2600);
   const m=$('#ss button[data-v="1"]'),[x2,y2]=cen(m);await glide(x2,y2,800);S.mx=S.my=0;S.hp=false;click();m.click();await sleep(2200)}
- say('11','Launch','Return opens the app — with a burst of sparkles.');
+ say('14','Launch','Return opens the app — with a burst of sparkles.');
  {const[x,y]=wp('Terminal');await glide(x,y,1100);await sleep(700);key('Return',900);kd('Enter');await sleep(2600)}
  nocap();fc.style.opacity=0;pg.style.width='100%';
 }
@@ -474,4 +514,4 @@ if(MODE==='overlay'&&API){
 } else if(MODE!=='overlay'){if(API||window.__FS)play(!!API);else gate()}
 
 })();
-</script></body></html>
+</script><script>if(!window.koiAPI){const a=document.createElement('a');a.className='dl-btn';a.href='https://github.com/mabdulhadi0208-afk/mabdulhadi0208-afk-koi/releases/latest/download/Koi-mac-arm64.dmg';a.target='_blank';a.textContent='⬇ Download for Mac';document.body.appendChild(a)}</script></body></html>

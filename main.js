@@ -78,11 +78,14 @@ const norm=a=>String(a).replace('CommandOrControl','Command').toLowerCase();
 const validAcc=a=>typeof a==='string'&&/^((Command|Control|Alt|Shift)\+)*([A-Z0-9]|F\d{1,2}|Space|Return|Tab|Backspace|Up|Down|Left|Right|[-=,./;'`\[\]\\])$/.test(a)&&(/\+/.test(a)||/^F\d{1,2}$/.test(a));
 function canRegister(acc){globalShortcut.unregisterAll();let ok=false;try{ok=globalShortcut.register(acc,()=>{});if(ok)globalShortcut.unregister(acc)}catch(e){}return ok}
 function launchApp(p,name){S.usage[name]=(S.usage[name]||0)+1;save();execFile('open',['-a',p])}
+let regStatus={main:false,hk:[]};
+function tryReg(acc,fn){try{if(globalShortcut.isRegistered(acc))globalShortcut.unregister(acc);return globalShortcut.register(acc,fn)&&globalShortcut.isRegistered(acc)}catch(e){console.error('reg fail',acc,e&&e.message);return false}}
 function reg(){
   globalShortcut.unregisterAll();
-  let ok=false;try{ok=globalShortcut.register(S.shortcut,toggle)}catch(e){}
-  if(!ok&&S.shortcut!==DEF.shortcut){S.shortcut=DEF.shortcut;try{globalShortcut.register(S.shortcut,toggle)}catch(e){}}
-  for(const h of S.hotkeys){try{globalShortcut.register(h.acc,()=>launchApp(h.path,h.name))}catch(e){}}
+  let ok=tryReg(S.shortcut,toggle);
+  if(!ok&&S.shortcut!==DEF.shortcut){ok=tryReg(DEF.shortcut,toggle);if(ok){S.shortcut=DEF.shortcut;save()}}
+  regStatus={main:ok,hk:S.hotkeys.map(h=>tryReg(h.acc,()=>launchApp(h.path,h.name)))};
+  if(!ok)console.error('main shortcut failed');
 }
 function openSettings(){
   if(settingsWin&&!settingsWin.isDestroyed()){settingsWin.focus();return}
@@ -157,7 +160,7 @@ ipcMain.on('koi:action',(_e,kind,p,name)=>{
   else if(kind==='quit')execFile('osascript',['-e',`tell application "${safe}" to quit`]);
 });
 const taken=(acc,skip)=>norm(acc)===norm(S.shortcut)&&skip!=='main'||S.hotkeys.some((h,i)=>i!==skip&&norm(h.acc)===norm(acc));
-ipcMain.handle('koi:s:get',()=>({main:S.shortcut,hk:S.hotkeys,apps:scan().sort((a,b)=>a.name.localeCompare(b.name))}));
+ipcMain.handle('koi:s:get',()=>({status:regStatus,main:S.shortcut,hk:S.hotkeys,apps:scan().sort((a,b)=>a.name.localeCompare(b.name))}));
 ipcMain.handle('koi:s:pause',()=>{globalShortcut.unregisterAll()});
 ipcMain.handle('koi:s:resume',()=>{reg()});
 ipcMain.handle('koi:s:setMain',(_e,acc)=>{
@@ -193,6 +196,8 @@ app.whenReady().then(()=>{
   tray.on('click',()=>togglePopover());tray.on('right-click',()=>togglePopover());
   updater.start({app,settings:()=>S,setBadge,onState:()=>sendPop(),saveSkip:v=>{S.skipped=v;save()},beforeQuit:()=>{app.isQuitting=true}});
   reg();makeOverlay();
+  try{const {powerMonitor}=require('electron');['resume','unlock-screen'].forEach(ev=>powerMonitor.on(ev,()=>setTimeout(reg,1500)));}catch(e){}
+  setTimeout(reg,3000);
   if(!S.tourSeen)openTour();
 });
 app.on('second-instance',()=>showOverlay());
