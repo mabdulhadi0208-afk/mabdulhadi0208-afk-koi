@@ -77,12 +77,20 @@ const label=()=>pretty(S.shortcut);
 const norm=a=>String(a).replace('CommandOrControl','Command').toLowerCase();
 const modOnly=a=>typeof a==='string'&&/^(Command|Control|Alt|Shift)(\+(Command|Control|Alt|Shift))+$/.test(a);
 const validAcc=a=>modOnly(a)||typeof a==='string'&&/^((Command|Control|Alt|Shift)\+)*([A-Z0-9]|F\d{1,2}|Space|Return|Tab|Backspace|Up|Down|Left|Right|[-=,./;'`\[\]\\])$/.test(a)&&(/\+/.test(a)||/^F\d{1,2}$/.test(a));
-function canRegister(acc){if(modOnly(acc))return hookOk;globalShortcut.unregisterAll();let ok=false;try{ok=globalShortcut.register(acc,()=>{});if(ok)globalShortcut.unregister(acc)}catch(e){}return ok}
+let hookOk=false,hookLoaded=false,chords=[],recording=false;
+function canRegister(acc){if(modOnly(acc)){startHook(true);return hookLoaded}globalShortcut.unregisterAll();let ok=false;try{ok=globalShortcut.register(acc,()=>{});if(ok)globalShortcut.unregister(acc)}catch(e){}return ok}
 function launchApp(p,name){S.usage[name]=(S.usage[name]||0)+1;save();execFile('open',['-a',p])}
 
-// ---- modifier-only chords (e.g. ⌘⌥) via global key hook; needs Input Monitoring permission ----
+// ---- modifier-only chords (e.g. ⌘⌥) via global key hook; needs Accessibility permission ----
+let uio=null;
+function startHook(prompt){
+  if(hookOk||!uio)return hookOk;
+  try{const {systemPreferences}=require('electron');if(process.platform==='darwin'&&!systemPreferences.isTrustedAccessibilityClient(!!prompt))return false}catch(e){}
+  try{uio.start();hookOk=true;try{reg()}catch(e){}}catch(e){console.error('hook start failed',e&&e.message)}
+  return hookOk;
+}
 (function(){try{
-  const {uIOhook}=require('uiohook-napi');
+  const {uIOhook}=require('uiohook-napi');uio=uIOhook;hookLoaded=true;
   const M={56:'Alt',3640:'Alt',29:'Control',3613:'Control',42:'Shift',54:'Shift',3675:'Command',3676:'Command'};
   const held=new Set();let peak=new Set(),dirty=false;
   uIOhook.on('keydown',e=>{const m=M[e.keycode];if(m){held.add(m+':'+e.keycode);peak.add(m)}else dirty=true});
@@ -90,10 +98,9 @@ function launchApp(p,name){S.usage[name]=(S.usage[name]||0)+1;save();execFile('o
     if(held.size===0){const acc=['Command','Control','Alt','Shift'].filter(x=>peak.has(x)).join('+');
       if(!dirty&&!recording&&peak.size>=2){const c=chords.find(c=>c.acc===acc);if(c)c.fn()}
       peak=new Set();dirty=false}});
-  uIOhook.start();hookOk=true;
 }catch(e){console.error('key hook unavailable',e&&e.message)}})();
+setInterval(()=>{if(!hookOk&&hookLoaded&&chords.length)startHook(false)},3000);
 let regStatus={main:false,hk:[]};
-let hookOk=false,chords=[],recording=false;
 function tryReg(acc,fn){if(modOnly(acc)){chords=chords.filter(c=>c.acc!==acc);chords.push({acc,fn});return hookOk}try{if(globalShortcut.isRegistered(acc))globalShortcut.unregister(acc);return globalShortcut.register(acc,fn)&&globalShortcut.isRegistered(acc)}catch(e){console.error('reg fail',acc,e&&e.message);return false}}
 function reg(){
   globalShortcut.unregisterAll();chords=[];

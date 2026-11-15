@@ -29,7 +29,7 @@ select{font:500 13.5px -apple-system,system-ui;padding:7px 10px;border-radius:10
 <div class="row"><div class="nm">Open the fan</div><button class="rec" id="main">…</button><button class="btn" id="reset">Reset</button></div><div class="msg" id="m1"></div></div>
 <div class="card"><h2>App hotkeys</h2><p>Jump straight to an app from anywhere — for example ⌥S for Safari.</p>
 <div id="list"></div><div style="margin-top:10px"><button class="btn pr" id="add">+ Add app hotkey</button></div><div class="msg" id="m2"></div></div>
-<div class="foot">Use a modifier + key, an F-key, or just two modifiers (e.g. hold ⌘⌥ and let go — needs Input Monitoring permission in System Settings → Privacy &amp; Security). Esc cancels.</div>
+<div class="foot">Use a modifier + key, an F-key, or just two modifiers (e.g. hold ⌘⌥ and let go — needs Accessibility permission: System Settings → Privacy &amp; Security → Accessibility → Koi on). Esc cancels.</div>
 <script>
 const api=window.koiAPI;let st={main:'',hk:[],apps:[]},rec=null;
 const SYM={Command:'⌘',CommandOrControl:'⌘',Control:'⌃',Alt:'⌥',Shift:'⇧'};
@@ -48,7 +48,7 @@ function render(){
  const L=$('list');L.innerHTML='';
  if(!st.hk.length){L.innerHTML='<div class="empty">No app hotkeys yet.</div>'}
  st.hk.forEach((h,i)=>{const r=document.createElement('div');r.className='row';
-  r.innerHTML=`<div class="nm">${h.name}</div><button class="rec" data-i="${i}" title="${st.status&&st.status.hk[i]===false?'Not active — another app owns this shortcut':''}">${pretty(h.acc)}${st.status&&st.status.hk[i]===false?' ⚠':''}</button><button class="x" data-x="${i}" title="Remove">×</button>`;L.appendChild(r)});
+  r.innerHTML=`<div class="nm">${h.name}</div><button class="rec" data-i="${i}" title="${st.status&&st.status.hk[i]===false?'Not active — another app owns it, or Koi needs Accessibility permission':''}">${pretty(h.acc)}${st.status&&st.status.hk[i]===false?' ⚠':''}</button><button class="x" data-x="${i}" title="Remove">×</button>`;L.appendChild(r)});
 }
 const $=id=>document.getElementById(id);
 async function refresh(){st=await api.s.get();render()}
