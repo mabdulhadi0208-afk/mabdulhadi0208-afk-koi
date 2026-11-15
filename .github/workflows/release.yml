@@ -13,17 +13,19 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - run: npm install
-      - name: Build DMGs
+      - name: Build DMGs (retry on flaky hdiutil)
         shell: bash
         run: |
-          set +e
-          DEBUG=electron-builder npx electron-builder --mac --arm64 --x64 --publish never 2>&1 | tee build.log
-          code=${PIPESTATUS[0]}
-          if [ "$code" != "0" ]; then
-            msg=$(tail -30 build.log | tr -d '\r' | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
-            echo "::error title=build failed::$msg"
-          fi
-          exit $code
+          for attempt in 1 2 3; do
+            echo "=== attempt $attempt"
+            for v in /Volumes/Koi*; do [ -e "$v" ] && hdiutil detach "$v" -force || true; done
+            rm -rf dist
+            if npx electron-builder --mac --arm64 --x64 --publish never 2>&1 | tee build.log; [ "${PIPESTATUS[0]}" = "0" ]; then exit 0; fi
+            msg=$(tail -25 build.log | tr -d '\r' | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::warning title=attempt $attempt failed::$msg"
+            sleep 8
+          done
+          exit 1
       - name: Verify signatures
         shell: bash
         run: |
