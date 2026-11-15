@@ -396,7 +396,7 @@ const later=(ms,f)=>setTimeout(()=>{if(!cancel)f()},ms);
 function gate(){S.film=true;F.style.display='block';bk.style.transition='none';bk.style.opacity=1;scene.innerHTML='<div class="glow"></div><div class="brand">'+logo(90).replace(/class="(rg|dt)"/g,'')+'<p style="animation:none;opacity:1;font-size:17px;margin-top:4px">The Koi film</p><div class="btns" style="animation:none;opacity:1"><button class="pr" id="g1">▶ Play with sound</button><button id="g0">Play without sound</button></div></div>';$('#g1').onclick=()=>play(true);$('#g0').onclick=()=>play(false)}
 
 const KV=(()=>{const v='__KOI_VERSION__';return v.indexOf('__')===0?'dev':v})();
-const WHATS_NEW=[['🫧','Springy menu-bar popover','A custom jelly panel replaces the stock macOS menu.'],['⌨️','Your own hotkeys','Pick the summon key and bind any app to its own shortcut.'],['⬆️','Auto-update','Koi finds, downloads and swaps itself in the background.'],['🎬','A film that updates with Koi','This intro is rebuilt on every release.']];
+const WHATS_NEW=[['🫧','Springy menu-bar popover','A custom jelly panel replaces the stock macOS menu.'],['⌨️','Your own hotkeys','Pick the summon key and bind any app to its own shortcut.'],['⬆️','Auto-update','Koi finds, downloads and swaps itself in the background.'],['⌘','Modifier-only hotkeys','Hold ⌘⌥ (any two modifiers) and let go — no letter needed.'],['🎬','A film that updates with Koi','This intro is rebuilt on every release.']];
 const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 function say(n,t,d){cap.classList.remove('in');void cap.offsetWidth;cap.querySelector('.n').textContent=n;cap.querySelector('b').textContent=t;cap.querySelector('p').textContent=d;cap.classList.add('in');pg.style.width=(parseInt(n)/14*100)+'%';bell(784,.03,1.4);whoosh(.025)}
 function nocap(){cap.classList.remove('in');cap.style.opacity=0}
@@ -455,7 +455,7 @@ async function tutorial(){
  close();await sleep(500);
  say('08','Menu-bar popover','Click the fish. A custom springy panel — theme, size, motion, sounds, all in one jelly card.');
  scene.innerHTML=MK('pop');await sleep(4200);
- say('09','Your hotkeys','Choose the summon key and give any app its own global shortcut.');
+ say('09','Your hotkeys','Pick any combo — even just ⌘⌥ held together — and give any app its own global shortcut.');
  scene.innerHTML=MK('hk');await sleep(4200);
  say('10','Auto-update','Koi checks quietly, downloads, then swaps itself in with one click. No reinstall.');
  scene.innerHTML=MK('up');await sleep(4200);

@@ -29,7 +29,7 @@ select{font:500 13.5px -apple-system,system-ui;padding:7px 10px;border-radius:10
 <div class="row"><div class="nm">Open the fan</div><button class="rec" id="main">…</button><button class="btn" id="reset">Reset</button></div><div class="msg" id="m1"></div></div>
 <div class="card"><h2>App hotkeys</h2><p>Jump straight to an app from anywhere — for example ⌥S for Safari.</p>
 <div id="list"></div><div style="margin-top:10px"><button class="btn pr" id="add">+ Add app hotkey</button></div><div class="msg" id="m2"></div></div>
-<div class="foot">Shortcuts need at least one modifier (⌘ ⌥ ⌃ ⇧), or an F-key. Esc cancels.</div>
+<div class="foot">Use a modifier + key, an F-key, or just two modifiers (e.g. hold ⌘⌥ and let go — needs Input Monitoring permission in System Settings → Privacy &amp; Security). Esc cancels.</div>
 <script>
 const api=window.koiAPI;let st={main:'',hk:[],apps:[]},rec=null;
 const SYM={Command:'⌘',CommandOrControl:'⌘',Control:'⌃',Alt:'⌥',Shift:'⇧'};
@@ -57,12 +57,14 @@ async function startRec(btn,done){
  await api.s.pause();btn.classList.add('on');btn.dataset.old=btn.textContent;btn.textContent='Press keys…';rec={btn,done};
 }
 async function stopRec(){if(!rec)return;rec.btn.classList.remove('on','err');if(rec.btn.dataset.old)rec.btn.textContent=rec.btn.dataset.old;rec=null;await api.s.resume();render()}
-addEventListener('keyup',e=>{if(rec&&['Meta','Control','Alt','Shift'].includes(e.key)){const m=(e.metaKey?'⌘ ':'')+(e.ctrlKey?'⌃ ':'')+(e.altKey?'⌥ ':'')+(e.shiftKey?'⇧ ':'');rec.btn.textContent=m?m+'…':'Press keys…'}});
+let peakM=null,sawKey=false;
+addEventListener('keyup',async e=>{if(rec&&['Meta','Control','Alt','Shift'].includes(e.key)&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&!e.shiftKey&&peakM&&peakM.length>=2&&!sawKey){const acc=peakM.join('+'),done=rec.done,b=rec.btn;peakM=null;b.classList.remove('on');rec=null;await api.s.resume();const res=await done(acc);if(!res.ok){b.classList.add('err');b.textContent='Taken';setTimeout(()=>{b.classList.remove('err');render()},1100);const m=$(res.where||'m1');m.textContent=res.msg||'Not available';setTimeout(()=>m.textContent='',3500)}else await refresh();return}
+if(rec&&['Meta','Control','Alt','Shift'].includes(e.key)){const m=(e.metaKey?'⌘ ':'')+(e.ctrlKey?'⌃ ':'')+(e.altKey?'⌥ ':'')+(e.shiftKey?'⇧ ':'');rec.btn.textContent=m?m+'…':'Press keys…'}});
 addEventListener('keydown',async e=>{
  if(!rec)return;e.preventDefault();
- if(['Meta','Control','Alt','Shift'].includes(e.key)){const m=(e.metaKey?'⌘ ':'')+(e.ctrlKey?'⌃ ':'')+(e.altKey?'⌥ ':'')+(e.shiftKey?'⇧ ':'');rec.btn.textContent=m?m+'…':'Press keys…';return}
+ if(['Meta','Control','Alt','Shift'].includes(e.key)){const pm=[];if(e.metaKey)pm.push('Command');if(e.ctrlKey)pm.push('Control');if(e.altKey)pm.push('Alt');if(e.shiftKey)pm.push('Shift');if(!peakM||pm.length>=peakM.length){peakM=pm;sawKey=false}const m=(e.metaKey?'⌘ ':'')+(e.ctrlKey?'⌃ ':'')+(e.altKey?'⌥ ':'')+(e.shiftKey?'⇧ ':'');rec.btn.textContent=m?m+'…':'Press keys…';return}
  if(e.key==='Escape'){stopRec();return}
- const r=toAccel(e);if(!r)return;
+ sawKey=true;const r=toAccel(e);if(!r)return;
  const b=rec.btn,done=rec.done;
  if(r.err){b.classList.add('err');b.textContent=r.err;setTimeout(()=>{b.classList.remove('err');b.textContent='Press keys…'},900);return}
  b.classList.remove('on');rec=null;await api.s.resume();

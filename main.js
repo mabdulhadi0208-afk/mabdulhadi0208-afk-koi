@@ -75,13 +75,28 @@ const SYM={Command:'⌘',CommandOrControl:'⌘',Control:'⌃',Alt:'⌥',Shift:'�
 const pretty=a=>(a||'').split('+').map(p=>SYM[p]||(p==='Return'?'↩':p)).join(' ');
 const label=()=>pretty(S.shortcut);
 const norm=a=>String(a).replace('CommandOrControl','Command').toLowerCase();
-const validAcc=a=>typeof a==='string'&&/^((Command|Control|Alt|Shift)\+)*([A-Z0-9]|F\d{1,2}|Space|Return|Tab|Backspace|Up|Down|Left|Right|[-=,./;'`\[\]\\])$/.test(a)&&(/\+/.test(a)||/^F\d{1,2}$/.test(a));
-function canRegister(acc){globalShortcut.unregisterAll();let ok=false;try{ok=globalShortcut.register(acc,()=>{});if(ok)globalShortcut.unregister(acc)}catch(e){}return ok}
+const modOnly=a=>typeof a==='string'&&/^(Command|Control|Alt|Shift)(\+(Command|Control|Alt|Shift))+$/.test(a);
+const validAcc=a=>modOnly(a)||typeof a==='string'&&/^((Command|Control|Alt|Shift)\+)*([A-Z0-9]|F\d{1,2}|Space|Return|Tab|Backspace|Up|Down|Left|Right|[-=,./;'`\[\]\\])$/.test(a)&&(/\+/.test(a)||/^F\d{1,2}$/.test(a));
+function canRegister(acc){if(modOnly(acc))return hookOk;globalShortcut.unregisterAll();let ok=false;try{ok=globalShortcut.register(acc,()=>{});if(ok)globalShortcut.unregister(acc)}catch(e){}return ok}
 function launchApp(p,name){S.usage[name]=(S.usage[name]||0)+1;save();execFile('open',['-a',p])}
+
+// ---- modifier-only chords (e.g. ⌘⌥) via global key hook; needs Input Monitoring permission ----
+(function(){try{
+  const {uIOhook}=require('uiohook-napi');
+  const M={56:'Alt',3640:'Alt',29:'Control',3613:'Control',42:'Shift',54:'Shift',3675:'Command',3676:'Command'};
+  const held=new Set();let peak=new Set(),dirty=false;
+  uIOhook.on('keydown',e=>{const m=M[e.keycode];if(m){held.add(m+':'+e.keycode);peak.add(m)}else dirty=true});
+  uIOhook.on('keyup',e=>{const m=M[e.keycode];if(!m)return;held.delete(m+':'+e.keycode);
+    if(held.size===0){const acc=['Command','Control','Alt','Shift'].filter(x=>peak.has(x)).join('+');
+      if(!dirty&&!recording&&peak.size>=2){const c=chords.find(c=>c.acc===acc);if(c)c.fn()}
+      peak=new Set();dirty=false}});
+  uIOhook.start();hookOk=true;
+}catch(e){console.error('key hook unavailable',e&&e.message)}})();
 let regStatus={main:false,hk:[]};
-function tryReg(acc,fn){try{if(globalShortcut.isRegistered(acc))globalShortcut.unregister(acc);return globalShortcut.register(acc,fn)&&globalShortcut.isRegistered(acc)}catch(e){console.error('reg fail',acc,e&&e.message);return false}}
+let hookOk=false,chords=[],recording=false;
+function tryReg(acc,fn){if(modOnly(acc)){chords=chords.filter(c=>c.acc!==acc);chords.push({acc,fn});return hookOk}try{if(globalShortcut.isRegistered(acc))globalShortcut.unregister(acc);return globalShortcut.register(acc,fn)&&globalShortcut.isRegistered(acc)}catch(e){console.error('reg fail',acc,e&&e.message);return false}}
 function reg(){
-  globalShortcut.unregisterAll();
+  globalShortcut.unregisterAll();chords=[];
   let ok=tryReg(S.shortcut,toggle);
   if(!ok&&S.shortcut!==DEF.shortcut){ok=tryReg(DEF.shortcut,toggle);if(ok){S.shortcut=DEF.shortcut;save()}}
   regStatus={main:ok,hk:S.hotkeys.map(h=>tryReg(h.acc,()=>launchApp(h.path,h.name)))};
@@ -161,8 +176,8 @@ ipcMain.on('koi:action',(_e,kind,p,name)=>{
 });
 const taken=(acc,skip)=>norm(acc)===norm(S.shortcut)&&skip!=='main'||S.hotkeys.some((h,i)=>i!==skip&&norm(h.acc)===norm(acc));
 ipcMain.handle('koi:s:get',()=>({status:regStatus,main:S.shortcut,hk:S.hotkeys,apps:scan().sort((a,b)=>a.name.localeCompare(b.name))}));
-ipcMain.handle('koi:s:pause',()=>{globalShortcut.unregisterAll()});
-ipcMain.handle('koi:s:resume',()=>{reg()});
+ipcMain.handle('koi:s:pause',()=>{recording=true;globalShortcut.unregisterAll()});
+ipcMain.handle('koi:s:resume',()=>{recording=false;reg()});
 ipcMain.handle('koi:s:setMain',(_e,acc)=>{
   if(!validAcc(acc))return {ok:false,msg:'That key combo is not valid.',where:'m1'};
   if(taken(acc,'main')&&norm(acc)!==norm(S.shortcut))return {ok:false,msg:'Already used by one of your app hotkeys.',where:'m1'};

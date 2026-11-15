@@ -1,7 +1,7 @@
 {
   "name": "koi",
   "version": "1.0.0",
-  "description": "Koi \u2014 a springy, fluid fan app switcher for macOS",
+  "description": "Koi — a springy, fluid fan app switcher for macOS",
   "main": "main.js",
   "author": "Koi",
   "license": "MIT",
@@ -79,6 +79,13 @@
         }
       ]
     },
-    "afterPack": "build/afterPack.js"
+    "afterPack": "build/afterPack.js",
+    "npmRebuild": false,
+    "asarUnpack": [
+      "node_modules/uiohook-napi/**"
+    ]
+  },
+  "dependencies": {
+    "uiohook-napi": "^1.5.4"
   }
 }
