@@ -25,7 +25,6 @@ contextBridge.exposeInMainWorld('koiAPI',{
     action:a=>ipcRenderer.send('pop:action',a),
     size:h=>ipcRenderer.send('pop:size',h)
   },
-  sw:{onShow:cb=>sub('sw:show',cb),onSel:cb=>sub('sw:sel',cb),onThumbs:cb=>sub('sw:thumbs',cb),onHide:cb=>ipcRenderer.on('sw:hide',()=>cb())},
   upd:{
     state:()=>ipcRenderer.invoke('upd:action','state'),
     onState:cb=>sub('upd:state',cb),
