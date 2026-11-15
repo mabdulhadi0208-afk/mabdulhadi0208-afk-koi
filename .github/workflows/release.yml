@@ -13,7 +13,17 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - run: npm install
-      - run: npx electron-builder --mac --arm64 --x64 --publish never
+      - name: Build DMGs
+        shell: bash
+        run: |
+          set +e
+          DEBUG=electron-builder npx electron-builder --mac --arm64 --x64 --publish never 2>&1 | tee build.log
+          code=${PIPESTATUS[0]}
+          if [ "$code" != "0" ]; then
+            msg=$(tail -30 build.log | tr -d '\r' | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=build failed::$msg"
+          fi
+          exit $code
       - run: ls -la dist
       - uses: softprops/action-gh-release@v2
         with:
