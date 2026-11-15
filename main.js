@@ -4,10 +4,10 @@ const path=require('path'),fs=require('fs'),os=require('os'),{execFile}=require(
 const updater=require('./updater');
 
 let tray=null,overlay=null,tour=null,settingsWin=null,popWin=null,popShown=false,lastPopHide=0,trayFrames=[],trayTimer=null,shown=false,lastToggle=0;
-const DEF={theme:'light',size:1,speed:1,sound:false,shortcut:'Alt+Space',hotkeys:[],tourSeen:false,usage:{},autoDownload:true,updateCard:true,skipped:null};
+const DEF={theme:'light',size:1,speed:1.3,sound:false,shortcut:'Alt+Space',hotkeys:[],tourSeen:false,usage:{},autoDownload:true,updateCard:true,skipped:null};
 let S={...DEF};
 const SF=()=>path.join(app.getPath('userData'),'koi-settings.json');
-const load=()=>{try{S={...DEF,...JSON.parse(fs.readFileSync(SF(),'utf8'))}}catch(e){}};
+const load=()=>{try{S={...DEF,...JSON.parse(fs.readFileSync(SF(),'utf8'))}}catch(e){}if(!S.migFast){S.speed=1.3;S.migFast=true;try{fs.writeFileSync(SF(),JSON.stringify(S))}catch(e){}}};
 const save=()=>{try{fs.writeFileSync(SF(),JSON.stringify(S))}catch(e){}};
 
 if(!app.requestSingleInstanceLock()){app.quit();}
@@ -106,7 +106,7 @@ function tryReg(acc,fn){if(modOnly(acc)){chords=chords.filter(c=>c.acc!==acc);ch
 function reg(){
   globalShortcut.unregisterAll();chords=[];
   let ok=tryReg(S.shortcut,toggle);
-  if(!ok&&S.shortcut!==DEF.shortcut){ok=tryReg(DEF.shortcut,toggle);if(ok){S.shortcut=DEF.shortcut;save()}}
+  if(!ok&&S.shortcut!==DEF.shortcut){tryReg(DEF.shortcut,toggle)}/* temporary fallback only; never overwrite the saved shortcut (old instance may still hold it during an update) */
   regStatus={main:ok,hk:S.hotkeys.map(h=>tryReg(h.acc,()=>launchApp(h.path,h.name)))};
   if(!ok)console.error('main shortcut failed');
 }
@@ -220,7 +220,7 @@ app.whenReady().then(()=>{
   updater.start({app,settings:()=>S,setBadge,onState:()=>sendPop(),saveSkip:v=>{S.skipped=v;save()},beforeQuit:()=>{app.isQuitting=true}});
   reg();makeOverlay();
   try{const {powerMonitor}=require('electron');['resume','unlock-screen'].forEach(ev=>powerMonitor.on(ev,()=>setTimeout(reg,1500)));}catch(e){}
-  setTimeout(reg,3000);
+  setTimeout(reg,3000);setTimeout(reg,9000);
   if(!S.tourSeen)openTour();
 });
 app.on('second-instance',()=>showOverlay());

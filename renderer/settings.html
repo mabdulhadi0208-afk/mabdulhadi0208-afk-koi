@@ -53,11 +53,11 @@ function toAccel(e){
  return {acc:m.concat(k).join('+')};
 }
 function render(){
- $('main').textContent=pretty(st.main)+(st.status&&!st.status.main?'  ⚠':'');
+ $('main').textContent=pretty(st.main)+(st.status&&!st.status.main?'  (!)':'');
  const L=$('list');L.innerHTML='';
  if(!st.hk.length){L.innerHTML='<div class="empty">No app hotkeys yet.</div>'}
  st.hk.forEach((h,i)=>{const r=document.createElement('div');r.className='row';
-  r.innerHTML=`<div class="nm">${h.name}</div><button class="rec" data-i="${i}" title="${st.status&&st.status.hk[i]===false?'Not active — another app owns it, or Koi needs Accessibility permission':''}">${pretty(h.acc)}${st.status&&st.status.hk[i]===false?' ⚠':''}</button><button class="x" data-x="${i}" title="Remove">×</button>`;L.appendChild(r)});
+  r.innerHTML=`<div class="nm">${h.name}</div><button class="rec" data-i="${i}" title="${st.status&&st.status.hk[i]===false?'Not active — another app owns it, or Koi needs Accessibility permission':''}">${pretty(h.acc)}${st.status&&st.status.hk[i]===false?' (!)':''}</button><button class="x" data-x="${i}" title="Remove">×</button>`;L.appendChild(r)});
 }
 const $=id=>document.getElementById(id);
 async function refresh(){st=await api.s.get();render()}

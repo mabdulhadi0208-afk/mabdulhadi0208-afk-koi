@@ -175,7 +175,7 @@ body.dk.ov #dim{background:rgba(0,0,0,.22)}
 <div class="hero"><h1>Zero-config app switching.</h1><p>Middle-click, tap <kbd>Right ⌘</kbd> or hit <kbd>Space</kbd>. The fan blooms around your cursor — move over a wedge or type its letter, then <kbd>Return</kbd>. Press the same letter again to cycle apps. Scroll to page through more. <kbd>Esc</kbd> closes.</p></div>
 <div id="dim"></div>
 <div id="stage"><div id="spot"></div><div id="q"></div><div id="lab"></div><div id="chips"></div><div id="rip"></div><div id="ctr"><div class="bi"></div><b></b><span>↩ TO OPEN</span></div></div>
-<div class="ctl"><label>Size</label><div class="seg" id="ss"><button data-v=".85">S</button><button data-v="1" class="on">M</button><button data-v="1.2">B</button><button data-v="1.4">XL</button></div><label>Theme</label><div class="seg" id="th"><button data-v="l" class="on">Light</button><button data-v="d">Dark</button></div><label>Speed</label><div class="seg" id="sp"><button data-v="1.3">Fast</button><button data-v="1" class="on">Normal</button><button data-v=".7">Soft</button></div><button class="go ghost" id="tour">▶ Tour</button><button class="go ghost" id="snd">Sound off</button><button class="go" id="go">Open Koi</button></div>
+<div class="ctl"><label>Size</label><div class="seg" id="ss"><button data-v=".85">S</button><button data-v="1" class="on">M</button><button data-v="1.2">B</button><button data-v="1.4">XL</button></div><label>Theme</label><div class="seg" id="th"><button data-v="l" class="on">Light</button><button data-v="d">Dark</button></div><label>Speed</label><div class="seg" id="sp"><button data-v="1.3" class="on">Fast</button><button data-v="1">Normal</button><button data-v=".7">Soft</button></div><button class="go ghost" id="tour">▶ Tour</button><button class="go ghost" id="snd">Sound off</button><button class="go" id="go">Open Koi</button></div>
 <div id="toast"></div>
 <div id="film"><div id="bk"></div><div id="vig"></div><div class="bar t"></div><div class="bar b"></div><div id="pg"></div><div id="scene"></div><div id="cap"><div class="n"></div><b></b><p></p></div><div id="kc"></div><svg id="fc" viewBox="0 0 24 24"><path d="M4 2.500v17l4.500-4 3 6.800 3.200-1.400-3-6.600H19z" fill="#111" stroke="#fff" stroke-width="1.600" stroke-linejoin="round"/></svg><button id="skip">Skip ▸▸</button></div>
 <script>
@@ -225,7 +225,7 @@ const GP=(()=>{const o=232,i0=R0+4,i1=R1-4,h=rad(HALF)-4/i0*0.9,h1=rad(HALF)-4/i
 let AC;function ac(){if(!S.snd)return null;try{AC=AC||new (window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();return AC}catch(e){return null}}
 function tone(f,d=.08,v=.04,ty='sine',sl=0,dl=0){const a=ac();if(!a)return;const t=a.currentTime+dl,o=a.createOscillator(),g=a.createGain();o.type=ty;o.frequency.setValueAtTime(f,t);if(sl)o.frequency.exponentialRampToValueAtTime(f*sl,t+d);g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(a.destination);o.start(t);o.stop(t+d+.02)}
 const ACT=[['＋','New window'],['—','Hide'],['⏻','Quit']];
-const S={snd:false,open:false,size:1,speed:1,q:'',sel:0,list:[],cx:innerWidth*.42,cy:innerHeight*.5,mx:0,my:0};
+const S={snd:false,open:false,size:1,speed:1.3,q:'',sel:0,list:[],cx:innerWidth*.42,cy:innerHeight*.5,mx:0,my:0};
 const buildApp=a=>{
  const e=document.createElement('div');e.className='w';
  a.col=a.name==='Calendar'?'#ef4d3f':(a.bg.match(/#[0-9a-f]{6}/gi)||['#0a84ff','#0a84ff'])[1];
@@ -404,7 +404,7 @@ const later=(ms,f)=>setTimeout(()=>{if(!cancel)f()},ms);
 function gate(){S.film=true;F.style.display='block';bk.style.transition='none';bk.style.opacity=1;scene.innerHTML='<div class="glow"></div><div class="brand">'+logo(90).replace(/class="(rg|dt)"/g,'')+'<p style="animation:none;opacity:1;font-size:17px;margin-top:4px">The Koi film</p><div class="btns" style="animation:none;opacity:1"><button class="pr" id="g1">▶ Play with sound</button><button id="g0">Play without sound</button></div></div>';$('#g1').onclick=()=>play(true);$('#g0').onclick=()=>play(false)}
 
 const KV=(()=>{const v='__KOI_VERSION__';return v.indexOf('__')===0?'dev':v})();
-const WHATS_NEW=[['🫧','Springy menu-bar popover','A custom jelly panel replaces the stock macOS menu.'],['⌨️','Your own hotkeys','Pick the summon key and bind any app to its own shortcut.'],['⬆️','Auto-update','Koi finds, downloads and swaps itself in the background.'],['⌘','Modifier-only hotkeys','Touch ⌘⌥ (any two modifiers) and Koi opens instantly — no letter, no release.'],['🫧','More spring, more jelly','Bouncier fan, squishier icons and springier panels everywhere.'],['⭐','Most-used apps first','Your favorites now sit at the top of the fan.'],['🎬','A film that updates with Koi','This intro is rebuilt on every release.']];
+const WHATS_NEW=[['01','Springy menu-bar popover','A custom jelly panel replaces the stock macOS menu.'],['02','Your own hotkeys','Pick the summon key and bind any app to its own shortcut. Your choice now survives updates.'],['03','Auto-update','Koi finds, downloads and swaps itself in the background, and keeps its permissions.'],['04','Modifier-only hotkeys','Touch the two modifiers (like Command + Option) and Koi opens instantly.'],['05','More spring, more jelly','Bouncier fan, squishier icons and springier panels everywhere.'],['06','Most-used apps first','Your favorites now sit at the top of the fan.'],['07','Fast by default','Koi opens at the quick speed out of the box.'],['08','A film that updates with Koi','This intro is rebuilt on every release.']];
 const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 function say(n,t,d){cap.classList.remove('in');void cap.offsetWidth;cap.querySelector('.n').textContent=n;cap.querySelector('b').textContent=t;cap.querySelector('p').textContent=d;cap.classList.add('in');pg.style.width=(parseInt(n)/14*100)+'%';bell(784,.03,1.4);whoosh(.025)}
 function nocap(){cap.classList.remove('in');cap.style.opacity=0}
@@ -516,10 +516,10 @@ if(MODE==='overlay'&&API){
   APPS.forEach(buildApp);
   APPS.forEach(a=>{const src=list.find(x=>x.name===a.name).icon;dom(src,c=>{a.col=c;const t=a.el.querySelector('.tint');if(t){t.setAttribute('fill',c);t.setAttribute('stroke',c)}})});
  };
- API.onShow(d=>{const st=d.settings||{};document.body.classList.toggle('dk',st.theme==='dark');S.size=st.size||1;S.speed=st.speed||1;S.snd=!!st.sound;
+ API.onShow(d=>{const st=d.settings||{};document.body.classList.toggle('dk',st.theme==='dark');S.size=st.size||1;S.speed=st.speed||1.3;S.snd=!!st.sound;
   setApps(d.apps||[]);S.open=false;S.mx=d.x;S.my=d.y;S.hp=false;S.film=false;open()});
  API.onHide&&API.onHide(()=>{S.open=false;dim.classList.remove('on');targets()});
 } else if(MODE!=='overlay'){if(API||window.__FS)play(!!API);else gate()}
 
 })();
-</script><script>if(!window.koiAPI){const a=document.createElement('a');a.className='dl-btn';a.href='https://github.com/mabdulhadi0208-afk/mabdulhadi0208-afk-koi/releases/latest/download/Koi-mac-arm64.dmg';a.target='_blank';a.textContent='⬇ Download for Mac';document.body.appendChild(a)}</script></body></html>
+</script><script>if(!window.koiAPI){const a=document.createElement('a');a.className='dl-btn';a.href='https://github.com/mabdulhadi0208-afk/mabdulhadi0208-afk-koi/releases/latest/download/Koi-mac-arm64.dmg';a.target='_blank';a.textContent='↓ Download for Mac';document.body.appendChild(a)}</script></body></html>
