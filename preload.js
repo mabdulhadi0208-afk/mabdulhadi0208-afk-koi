@@ -1,6 +1,7 @@
 const {contextBridge,ipcRenderer}=require('electron');
+const sub=(ch,cb)=>ipcRenderer.on(ch,(_e,d)=>cb(d));
 contextBridge.exposeInMainWorld('koiAPI',{
-  onShow:cb=>ipcRenderer.on('koi:show',(_e,d)=>cb(d)),
+  onShow:cb=>sub('koi:show',cb),
   onHide:cb=>ipcRenderer.on('koi:hide',()=>cb()),
   hide:()=>ipcRenderer.send('koi:hide'),
   launch:(p,n)=>ipcRenderer.send('koi:launch',p,n),
@@ -14,5 +15,19 @@ contextBridge.exposeInMainWorld('koiAPI',{
     addHotkey:(a,n,p)=>ipcRenderer.invoke('koi:s:add',a,n,p),
     updateHotkey:(i,a)=>ipcRenderer.invoke('koi:s:update',i,a),
     removeHotkey:i=>ipcRenderer.invoke('koi:s:remove',i)
+  },
+  pop:{
+    get:()=>ipcRenderer.invoke('pop:get'),
+    onState:cb=>sub('pop:state',cb),
+    onShow:cb=>sub('pop:show',cb),
+    onHide:cb=>ipcRenderer.on('pop:hide',()=>cb()),
+    set:(k,v)=>ipcRenderer.send('pop:set',k,v),
+    action:a=>ipcRenderer.send('pop:action',a),
+    size:h=>ipcRenderer.send('pop:size',h)
+  },
+  upd:{
+    state:()=>ipcRenderer.invoke('upd:action','state'),
+    onState:cb=>sub('upd:state',cb),
+    action:a=>ipcRenderer.invoke('upd:action',a)
   }
 });

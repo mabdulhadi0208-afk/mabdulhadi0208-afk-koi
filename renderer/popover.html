@@ -1,0 +1,144 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Koi</title>
+<style>
+:root{--bg:rgba(251,252,255,.97);--bg2:rgba(240,243,252,.98);--tx:#1b1d2a;--mut:rgba(27,29,42,.52);--ln:rgba(20,30,70,.09);--chip:rgba(20,30,70,.06);--chip2:rgba(20,30,70,.1);--ac:#0a84ff;--ac2:#7c5cff;--thumb:#fff;--sh:0 28px 60px -12px rgba(40,50,100,.38),0 8px 22px rgba(40,50,100,.16)}
+body.dk{--bg:rgba(27,29,50,.97);--bg2:rgba(36,39,66,.98);--tx:#f1f2ff;--mut:rgba(230,232,255,.55);--ln:rgba(255,255,255,.09);--chip:rgba(255,255,255,.07);--chip2:rgba(255,255,255,.13);--sh:0 28px 60px -12px rgba(0,0,10,.6),0 8px 22px rgba(0,0,10,.35)}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{background:transparent;overflow:hidden;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;color:var(--tx);-webkit-font-smoothing:antialiased;user-select:none;cursor:default}
+#wrap{position:absolute;left:12px;top:6px;width:320px}
+#panel{position:relative;border-radius:26px;background:linear-gradient(180deg,var(--bg),var(--bg2));box-shadow:var(--sh),inset 0 1px 0 rgba(255,255,255,.55),inset 0 0 0 1px var(--ln);padding:16px 14px 12px;opacity:0;will-change:transform,opacity;overflow:hidden}
+body.dk #panel{box-shadow:var(--sh),inset 0 1px 0 rgba(255,255,255,.1),inset 0 0 0 1px var(--ln)}
+.aura{position:absolute;inset:-40%;opacity:.13;filter:blur(40px);background:conic-gradient(from 0deg,#0a84ff,#7c5cff,#ff5d8f,#0a84ff);animation:sp 22s linear infinite;pointer-events:none}
+@keyframes sp{to{transform:rotate(1turn)}}
+.in{position:relative}
+.it{will-change:transform,opacity}
+.hd{display:flex;align-items:center;gap:11px;padding:2px 4px 14px}
+.lg{width:38px;height:38px;border-radius:12px;background:linear-gradient(150deg,#7fb2ff,#5a3dff);display:grid;place-items:center;box-shadow:0 8px 18px -6px rgba(90,80,255,.6),inset 0 1px 0 rgba(255,255,255,.4)}
+.hd b{font-size:19px;letter-spacing:-.02em;display:block;line-height:1.05}.hd small{font-size:12px;color:var(--mut)}
+.pill{margin-left:auto;font-size:11px;font-weight:650;padding:4px 10px;border-radius:99px;background:var(--chip);color:var(--mut);display:flex;align-items:center;gap:6px;white-space:nowrap}
+.pill i{width:7px;height:7px;border-radius:50%;background:#34c759;display:block}
+.pill.up{background:rgba(10,132,255,.14);color:var(--ac)}.pill.up i{background:var(--ac);animation:pl 1.2s ease-in-out infinite}
+.pill.err i{background:#ff9f0a}
+@keyframes pl{50%{transform:scale(1.6);opacity:.5}}
+.go{all:unset;box-sizing:border-box;width:100%;cursor:pointer;display:flex;align-items:center;gap:10px;padding:14px 16px;border-radius:18px;background:linear-gradient(135deg,var(--ac),var(--ac2));color:#fff;font-weight:700;font-size:15.5px;box-shadow:0 14px 26px -10px rgba(70,90,255,.7),inset 0 1px 0 rgba(255,255,255,.35);position:relative;overflow:hidden}
+.go .ki{margin-left:auto;display:flex;gap:4px}
+.go kbd{font:700 12px ui-monospace,Menlo,monospace;background:rgba(255,255,255,.22);padding:3px 8px;border-radius:8px}
+.go:after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(255,255,255,.22),transparent 55%);pointer-events:none}
+.lbl{font-size:11px;font-weight:700;letter-spacing:.09em;color:var(--mut);text-transform:uppercase;padding:16px 6px 7px}
+.seg{position:relative;display:flex;background:var(--chip);border-radius:13px;padding:3px;margin-bottom:8px}
+.seg .th{position:absolute;top:3px;bottom:3px;left:0;width:10px;border-radius:10px;background:var(--thumb);box-shadow:0 3px 10px rgba(30,40,90,.22),0 1px 2px rgba(30,40,90,.15);will-change:transform,width}
+body.dk .seg .th{background:rgba(255,255,255,.2);box-shadow:0 3px 10px rgba(0,0,10,.4)}
+.seg button{all:unset;box-sizing:border-box;flex:1;text-align:center;position:relative;z-index:1;padding:7px 0;font-size:13px;font-weight:600;cursor:pointer;color:var(--mut);transition:color .2s}
+.seg button.on{color:var(--tx)}
+.sg{display:flex;align-items:center;gap:8px;margin-bottom:8px}.sg>span{font-size:12.5px;font-weight:600;color:var(--mut);width:48px;flex:none;padding-left:4px}.sg .seg{flex:1;margin:0}
+.row{display:flex;align-items:center;gap:12px;padding:10px 10px;border-radius:14px;cursor:pointer;font-size:14.5px;font-weight:550;position:relative;will-change:transform}
+.row:hover{background:var(--chip)}
+.row .ic{width:28px;height:28px;border-radius:9px;background:var(--chip);display:grid;place-items:center;font-size:14px;flex:none}
+.row .r{margin-left:auto;color:var(--mut);font-size:12px;font-weight:600}
+.row.dg:hover{background:rgba(255,69,58,.12)}.row.dg .ic{background:rgba(255,69,58,.12)}
+.tg{width:48px;height:28px;border-radius:99px;background:var(--chip2);position:relative;margin-left:auto;flex:none;transition:background .25s}
+.tg.on{background:linear-gradient(135deg,#34c759,#30d158)}
+.tg i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:99px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.28);will-change:transform,width}
+.up-b{display:none;margin:12px 0 2px;padding:12px 14px;border-radius:16px;background:linear-gradient(135deg,rgba(10,132,255,.16),rgba(124,92,255,.16));border:1px solid rgba(10,132,255,.25);align-items:center;gap:10px}
+.up-b.show{display:flex}
+.up-b div{flex:1;font-size:13px;line-height:1.3}.up-b b{display:block;font-size:14px}.up-b small{color:var(--mut)}
+.bt{all:unset;cursor:pointer;padding:8px 14px;border-radius:11px;background:var(--ac);color:#fff;font-weight:700;font-size:13px;will-change:transform}
+.sep{height:1px;background:var(--ln);margin:8px 6px}
+.ft{text-align:center;font-size:11px;color:var(--mut);padding:8px 0 0}
+</style></head><body>
+<div id="wrap"><div id="panel"><div class="aura"></div><div class="in" id="in">
+ <div class="hd it"><div class="lg"><svg width="22" height="22" viewBox="0 0 120 120" fill="none"><circle cx="60" cy="60" r="46" stroke="#fff" stroke-width="9" stroke-linecap="round"/><circle cx="60" cy="60" r="17" fill="#fff"/></svg></div><div><b>Koi</b><small id="ver">v1.0</small></div><div class="pill" id="pill"><i></i><span>Up to date</span></div></div>
+ <button class="go it" id="open"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 12L6 5M12 12h9M12 12l-6 7"/></svg><span>Open the fan</span><span class="ki" id="ki"></span></button>
+ <div class="up-b it" id="upb"><div><b id="upt">Update ready</b><small id="ups"></small></div><button class="bt" id="upgo">Restart</button></div>
+ <div class="lbl it">Look &amp; feel</div>
+ <div class="sg it"><span>Theme</span><div class="seg" id="s-theme"><div class="th"></div><button data-v="light">Light</button><button data-v="dark">Dark</button></div></div>
+ <div class="sg it"><span>Size</span><div class="seg" id="s-size"><div class="th"></div><button data-v=".85">S</button><button data-v="1">M</button><button data-v="1.2">B</button><button data-v="1.4">XL</button></div></div>
+ <div class="sg it"><span>Motion</span><div class="seg" id="s-speed"><div class="th"></div><button data-v=".7">Soft</button><button data-v="1">Normal</button><button data-v="1.3">Fast</button></div></div>
+ <div class="lbl it">General</div>
+ <div class="row it" id="r-sound"><div class="ic">♪</div>Sounds<div class="tg" id="t-sound"><i></i></div></div>
+ <div class="row it" id="r-login"><div class="ic">⏻</div>Launch at login<div class="tg" id="t-login"><i></i></div></div>
+ <div class="row it" id="r-auto"><div class="ic">⇩</div>Auto-download updates<div class="tg" id="t-auto"><i></i></div></div>
+ <div class="sep it"></div>
+ <div class="row it" data-a="hotkeys"><div class="ic">⌥</div>Hotkeys…<span class="r">⌥ Space</span></div>
+ <div class="row it" data-a="tour"><div class="ic">▶</div>Replay the tour</div>
+ <div class="row it" data-a="update"><div class="ic">↻</div>Check for updates</div>
+ <div class="row it dg" data-a="quit"><div class="ic">✕</div>Quit Koi</div>
+ <div class="ft it" id="ft"></div>
+</div></div></div>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],api=window.koiAPI&&window.koiAPI.pop;
+// ---------- tiny spring engine (jelly, tuned) ----------
+const SP=new Set();
+class Sp{constructor(x,k=240,c=15,cb){this.x=x;this.v=0;this.t=x;this.k=k;this.c=c;this.cb=cb;SP.add(this)}
+ step(dt){this.v+=((this.t-this.x)*this.k-this.v*this.c)*dt;this.x+=this.v*dt;this.cb&&this.cb(this)}
+ set(t){this.t=t}}
+let last=performance.now();
+(function loop(now){const dt=Math.min(.033,(now-last)/1000);last=now;SP.forEach(s=>s.step(dt));requestAnimationFrame(loop)})(last);
+// ---------- state ----------
+let S={theme:'light',size:1,speed:1,sound:false,login:false,autoDownload:true,shortcut:'⌥ Space',version:'',upd:{status:'idle'}};
+const segs={};
+function mkSeg(id,key){const el=$('#'+id),th=el.querySelector('.th'),btns=[...el.querySelectorAll('button')];
+ const sx=new Sp(0,230,14),sw=new Sp(10,230,14);
+ const apply=()=>{th.style.transform=`translateX(${sx.x}px)`;th.style.width=Math.max(8,sw.x)+'px'};sx.cb=apply;sw.cb=apply;
+ let first=true;
+ const upd=v=>{let i=btns.findIndex(b=>+b.dataset.v===+v||b.dataset.v===String(v));if(i<0)i=0;btns.forEach((b,j)=>b.classList.toggle('on',j===i));
+  const b=btns[i],tx=b.offsetLeft,w=b.offsetWidth;
+  if(first){sx.x=sx.t=tx;sw.x=sw.t=w;first=false}else{
+   // jelly stretch: thumb lengthens toward the target then settles
+   const dir=tx>sx.t?1:-1;sw.t=w;sx.t=tx;sw.v+=140*Math.abs(tx-sx.x)/40;sx.v+=dir*60}
+  apply()};
+ btns.forEach(b=>b.onclick=()=>{const v=b.dataset.v;const val=key==='theme'?v:+v;S[key]=val;upd(val);api&&api.set(key,val);if(key==='theme')document.body.classList.toggle('dk',val==='dark');tick()});
+ segs[key]=upd}
+mkSeg('s-theme','theme');mkSeg('s-size','size');mkSeg('s-speed','speed');
+function mkToggle(row,tg,key){const el=$('#'+tg),th=el.querySelector('i');const x=new Sp(3,320,15),w=new Sp(22,320,15);
+ const ap=()=>{th.style.transform=`translateX(${x.x}px)`;th.style.width=Math.max(18,Math.min(32,w.x+Math.abs(x.v)*.05))+'px'};x.cb=ap;w.cb=ap;
+ const upd=on=>{el.classList.toggle('on',!!on);x.t=on?23:3;w.t=22;ap()};
+ $('#'+row).onclick=()=>{S[key]=!S[key];upd(S[key]);w.x=34;x.v+=S[key]?220:-220;api&&api.set(key,S[key]);tick()};
+ upd.init=on=>{el.classList.toggle('on',!!on);x.x=x.t=on?23:3;ap()};return upd}
+const tSound=mkToggle('r-sound','t-sound','sound'),tLogin=mkToggle('r-login','t-login','login'),tAuto=mkToggle('r-auto','t-auto','autoDownload');
+// hover / press jelly on rows & buttons
+function jelly(el,hov=1.035,tx=4){const s=new Sp(1,300,14),x=new Sp(0,300,14),q=new Sp(0,300,12);
+ const ap=()=>{el.style.transform=`translateX(${x.x}px) scale(${s.x*(1+q.x*.04)},${s.x*(1-q.x*.04)})`};s.cb=ap;x.cb=ap;q.cb=ap;
+ el.addEventListener('pointerenter',()=>{s.t=hov;x.t=tx;q.v+=2});el.addEventListener('pointerleave',()=>{s.t=1;x.t=0});
+ el.addEventListener('pointerdown',()=>{s.t=.95;q.v-=4});el.addEventListener('pointerup',()=>{s.t=hov;q.v+=5})}
+$$('.row').forEach(r=>jelly(r));jelly($('#open'),1.045,0);jelly($('#upgo'),1.1,0);
+// ---------- entrance / exit ----------
+const panel=$('#panel');let ps=new Sp(.7,200,13),py=new Sp(-18,200,13),po=new Sp(0,300,26),pq=new Sp(0,200,12);let items=[],itemSp=[];
+function apPanel(){panel.style.opacity=Math.max(0,Math.min(1,po.x));panel.style.transform=`translateY(${py.x}px) scale(${ps.x*(1+pq.x*.02)},${ps.x*(1-pq.x*.02)})`}
+[ps,py,po,pq].forEach(s=>s.cb=apPanel);
+function show(anchor){
+ SP.forEach(s=>{});panel.style.transformOrigin=(anchor||160)+'px 0px';
+ ps.x=.72;ps.v=0;ps.t=1;py.x=-20;py.v=0;py.t=0;po.x=0;po.v=0;po.t=1;pq.v=-6;
+ itemSp.forEach(x=>SP.delete(x));itemSp=[];
+ items=$$('.it');items.forEach((el,i)=>{el.style.opacity=0;const y=new Sp(16,230,14),o=new Sp(0,300,24),sc=new Sp(.92,230,14);
+  const apply=()=>{el.style.opacity=Math.max(0,Math.min(1,o.x));el.style.translate='0 '+y.x+'px';el.style.scale=String(sc.x)};
+  y.cb=apply;o.cb=apply;sc.cb=apply;itemSp.push(y,o,sc);setTimeout(()=>{y.t=0;o.t=1;sc.t=1},60+i*28)});
+ setTimeout(()=>{api&&api.size(panel.offsetHeight+30)},30);
+}
+function hide(){ps.t=.9;py.t=-8;po.t=0;po.k=420;po.c=30}
+// rows' transform is owned by jelly(); entrance handled via opacity only
+// ---------- render ----------
+function fmt(u){return u}
+function render(){
+ document.body.classList.toggle('dk',S.theme==='dark');
+ $('#ver').textContent='v'+(S.version||'1.0');
+ segs.theme(S.theme);segs.size(S.size);segs.speed(S.speed);tSound.init(S.sound);tLogin.init(S.login);tAuto.init(S.autoDownload);
+ $('#ki').innerHTML=S.shortcut.split(' ').map(k=>`<kbd>${k}</kbd>`).join('');
+ document.querySelector('[data-a=hotkeys] .r').textContent=S.shortcut;
+ const u=S.upd||{},pill=$('#pill'),ub=$('#upb');pill.className='pill';
+ const st=u.status;
+ if(st==='ready'){pill.classList.add('up');pill.querySelector('span').textContent='Update ready';ub.classList.add('show');$('#upt').textContent='Koi '+String(u.latest).replace(/^v/,'')+' is ready';$('#ups').textContent='Restart to switch — about 3 seconds';$('#upgo').textContent='Restart'}
+ else if(st==='available'||st==='downloading'||st==='unpacking'){pill.classList.add('up');pill.querySelector('span').textContent=st==='available'?'Update found':(u.progress||0)+'%';ub.classList.add('show');$('#upt').textContent='Koi '+String(u.latest).replace(/^v/,'');$('#ups').textContent=st==='available'?'Ready to download':st==='unpacking'?'Unpacking…':'Downloading '+(u.progress||0)+'%';$('#upgo').textContent=st==='available'?'Get it':'…'}
+ else if(st==='checking'){pill.querySelector('span').textContent='Checking…';ub.classList.remove('show')}
+ else if(st==='error'){pill.classList.add('err');pill.querySelector('span').textContent='Update hiccup';ub.classList.remove('show')}
+ else{pill.querySelector('span').textContent='Up to date';ub.classList.remove('show')}
+ $('#ft').textContent=u.lastCheck?'Last checked '+new Date(u.lastCheck).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'';
+ tick();
+}
+function tick(){clearTimeout(tick.t);tick.t=setTimeout(()=>{api&&api.size(panel.offsetHeight+30)},40)}
+$('#open').onclick=()=>api&&api.action('open');
+$('#upgo').onclick=()=>{const st=(S.upd||{}).status;api&&api.action(st==='ready'?'install':'download')};
+$$('[data-a]').forEach(r=>r.onclick=()=>api&&api.action(r.dataset.a));
+if(api){api.onState(s=>{S=Object.assign(S,s);render()});api.onShow(d=>{S=Object.assign(S,d.state);render();show(d.anchor)});api.onHide(()=>hide());api.get().then(s=>{S=Object.assign(S,s);render()})}
+else{render();show(200)}
+window.__pop={show,hide,render,S:()=>S};
+</script></body></html>

@@ -1,9 +1,10 @@
 // Koi — springy fan app switcher for macOS (menu-bar app)
 const {app,BrowserWindow,Tray,Menu,globalShortcut,screen,ipcMain,nativeImage,Notification}=require('electron');
 const path=require('path'),fs=require('fs'),os=require('os'),{execFile}=require('child_process');
+const updater=require('./updater');
 
-let tray=null,overlay=null,tour=null,settingsWin=null,shown=false,lastToggle=0;
-const DEF={theme:'light',size:1,speed:1,sound:false,shortcut:'Alt+Space',hotkeys:[],tourSeen:false,usage:{}};
+let tray=null,overlay=null,tour=null,settingsWin=null,popWin=null,popShown=false,lastPopHide=0,trayFrames=[],trayTimer=null,shown=false,lastToggle=0;
+const DEF={theme:'light',size:1,speed:1,sound:false,shortcut:'Alt+Space',hotkeys:[],tourSeen:false,usage:{},autoDownload:true,updateCard:true,skipped:null};
 let S={...DEF};
 const SF=()=>path.join(app.getPath('userData'),'koi-settings.json');
 const load=()=>{try{S={...DEF,...JSON.parse(fs.readFileSync(SF(),'utf8'))}}catch(e){}};
@@ -56,6 +57,7 @@ async function showOverlay(){
   const apps=await getApps();
   shown=true;overlay.show();overlay.focus();
   overlay.webContents.send('koi:show',{x:pt.x-disp.bounds.x,y:pt.y-disp.bounds.y,apps,settings:S});
+  animateTray(true);
 }
 function hideOverlay(){if(!overlay)return;shown=false;overlay.webContents.send('koi:hide');overlay.hide()}
 function toggle(){const t=Date.now();if(t-lastToggle<250)return;lastToggle=t;shown?hideOverlay():showOverlay()}
@@ -90,26 +92,58 @@ function openSettings(){
   settingsWin.loadFile(path.join(__dirname,'renderer','settings.html'));
   settingsWin.on('closed',()=>{settingsWin=null;reg();buildMenu()});
 }
-function buildMenu(){
-  const radio=(key,items)=>items.map(([l,v])=>({label:l,type:'radio',checked:S[key]===v,click:()=>{S[key]=v;save();buildMenu()}}));
-  tray.setContextMenu(Menu.buildFromTemplate([
-    {label:'Open Koi',accelerator:S.shortcut,click:()=>showOverlay()},
-    {type:'separator'},
-    {label:'Theme',submenu:radio('theme',[['Light','light'],['Dark','dark']])},
-    {label:'Size',submenu:radio('size',[['Small',.85],['Medium',1],['Big',1.2],['Huge',1.4]])},
-    {label:'Animation speed',submenu:radio('speed',[['Fast',1.3],['Normal',1],['Soft',.7]])},
-    {label:'Hotkeys…',click:()=>openSettings()},
-    {label:'Sounds',type:'checkbox',checked:!!S.sound,click:m=>{S.sound=m.checked;save()}},
-    {label:'Launch at login',type:'checkbox',checked:app.getLoginItemSettings().openAtLogin,click:m=>app.setLoginItemSettings({openAtLogin:m.checked})},
-    {type:'separator'},
-    {label:'Replay the tour',click:()=>openTour()},
-    {label:'About Koi  v'+app.getVersion(),enabled:false},
-    {label:'Quit Koi',accelerator:'Command+Q',click:()=>{app.isQuitting=true;app.quit()}}
-  ]));
+// ---------- tray icon (blooming fan frames) + custom springy popover ----------
+function loadFrames(){trayFrames=[];for(let k=0;k<7;k++){const im=nativeImage.createFromPath(path.join(__dirname,'assets',`trayFrame${k}Template.png`));im.setTemplateImage(true);trayFrames.push(im)}}
+function animateTray(open){
+  if(!tray)return;clearInterval(trayTimer);let k=open?0:6;if(open)tray.setImage(trayFrames[0]);
+  if(open){let i=0;trayTimer=setInterval(()=>{i++;tray.setImage(trayFrames[Math.min(6,i)]);if(i>=6)clearInterval(trayTimer)},38)}
+  else tray.setImage(trayFrames[6]);
 }
+function setBadge(on){try{tray&&tray.setTitle(on?' ↑':'')}catch(e){}}
+function popState(){return {theme:S.theme,size:S.size,speed:S.speed,sound:!!S.sound,login:!!app.getLoginItemSettings().openAtLogin,autoDownload:S.autoDownload!==false,shortcut:label(),version:app.getVersion(),upd:updater.snapshot()}}
+function sendPop(){if(popWin&&!popWin.isDestroyed())popWin.webContents.send('pop:state',popState())}
+function makePopover(){
+  popWin=new BrowserWindow({width:344,height:560,show:false,frame:false,transparent:true,hasShadow:false,resizable:false,movable:false,skipTaskbar:true,alwaysOnTop:true,fullscreenable:false,backgroundColor:'#00000000',
+    webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,backgroundThrottling:false}});
+  popWin.setAlwaysOnTop(true,'pop-up-menu');popWin.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true});
+  popWin.loadFile(path.join(__dirname,'renderer','popover.html'));
+  popWin.on('blur',()=>{if(popShown)hidePopover()});
+}
+function showPopover(){
+  if(!popWin||popWin.isDestroyed())makePopover();
+  const b=tray.getBounds(),disp=screen.getDisplayMatching(b),W=344,wa=disp.workArea;
+  let x=Math.round(b.x+b.width/2-W/2);x=Math.max(wa.x+4,Math.min(x,wa.x+wa.width-W-4));
+  popWin.setPosition(x,b.y+b.height-4);
+  popShown=true;animateTray(true);popWin.show();popWin.focus();
+  popWin.webContents.send('pop:show',{state:popState(),anchor:Math.round(b.x+b.width/2-x)-12});
+}
+function hidePopover(){if(!popShown)return;popShown=false;lastPopHide=Date.now();if(popWin&&!popWin.isDestroyed()){popWin.webContents.send('pop:hide');setTimeout(()=>{if(!popShown&&popWin&&!popWin.isDestroyed())popWin.hide()},200)}animateTray(false)}
+function togglePopover(){if(popShown)hidePopover();else if(Date.now()-lastPopHide>220)showPopover()}
+function buildMenu(){sendPop()}
 
 // ---------- IPC ----------
 ipcMain.on('koi:hide',()=>hideOverlay());
+ipcMain.handle('pop:get',()=>popState());
+ipcMain.on('pop:size',(_e,h)=>{if(popWin&&!popWin.isDestroyed()&&h>100&&h<900)popWin.setSize(344,Math.round(h))});
+ipcMain.on('pop:set',(_e,k,v)=>{
+  if(k==='theme'&&(v==='light'||v==='dark'))S.theme=v;
+  else if(k==='size'&&[.85,1,1.2,1.4].includes(+v))S.size=+v;
+  else if(k==='speed'&&[.7,1,1.3].includes(+v))S.speed=+v;
+  else if(k==='sound')S.sound=!!v;
+  else if(k==='autoDownload')S.autoDownload=!!v;
+  else if(k==='login'){S.login=!!v;try{app.setLoginItemSettings({openAtLogin:!!v})}catch(e){}}
+  save();
+});
+ipcMain.on('pop:action',(_e,a)=>{
+  if(a==='open'){hidePopover();setTimeout(()=>showOverlay(),230)}
+  else if(a==='hotkeys'){hidePopover();openSettings()}
+  else if(a==='tour'){hidePopover();openTour()}
+  else if(a==='update'){updater.actions.check()}
+  else if(a==='download'){updater.actions.download()}
+  else if(a==='install'){updater.actions.install()}
+  else if(a==='quit'){app.isQuitting=true;app.quit()}
+});
+ipcMain.handle('upd:action',(_e,a)=>{const f=updater.actions[a];return f?f():null});
 ipcMain.on('koi:launch',(_e,p,name)=>{
   if(typeof p!=='string'||!p.endsWith('.app'))return;
   S.usage[name]=(S.usage[name]||0)+1;save();
@@ -155,9 +189,9 @@ ipcMain.on('koi:tourDone',()=>{
 app.whenReady().then(()=>{
   load();
   if(app.dock)app.dock.hide();
-  const ti=nativeImage.createFromPath(path.join(__dirname,'assets','trayTemplate.png'));ti.setTemplateImage(true);
-  tray=new Tray(ti);tray.setToolTip('Koi');buildMenu();
-  tray.on('click',()=>{});
+  loadFrames();tray=new Tray(trayFrames[6]);tray.setToolTip('Koi');
+  tray.on('click',()=>togglePopover());tray.on('right-click',()=>togglePopover());
+  updater.start({app,settings:()=>S,setBadge,onState:()=>sendPop(),saveSkip:v=>{S.skipped=v;save()},beforeQuit:()=>{app.isQuitting=true}});
   reg();makeOverlay();
   if(!S.tourSeen)openTour();
 });
