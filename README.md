@@ -12,7 +12,10 @@ bloom around the cursor in a frosted fan — hover, type a letter, scroll for mo
 **Download:** [Apple Silicon (M1/M2/M3/M4)](https://github.com/mabdulhadi0208-afk/mabdulhadi0208-afk-koi/releases/latest/download/Koi-mac-arm64.dmg) · [Intel](https://github.com/mabdulhadi0208-afk/mabdulhadi0208-afk-koi/releases/latest/download/Koi-mac-x64.dmg)
 
 Download `Koi-mac-arm64.dmg` (Apple Silicon) or `Koi-mac-x64.dmg` (Intel) from Releases, drag Koi to Applications.
-The build is unsigned, so the first time: right-click Koi → Open (or `xattr -cr /Applications/Koi.app`).
+Koi is ad-hoc signed (not notarized by Apple). If macOS says it is "damaged" or can't be opened, double-click **Fix-Koi-if-damaged.command** in the DMG (or run `xattr -cr /Applications/Koi.app`), then open it.
+
+## Hotkeys
+Menu-bar icon → **Hotkeys…** lets you record your own shortcut for opening the fan, plus global hotkeys that jump straight to any app (e.g. ⌥S → Safari).
 
 ## Develop / build
 ```

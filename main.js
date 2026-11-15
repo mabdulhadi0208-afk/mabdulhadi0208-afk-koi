@@ -2,8 +2,8 @@
 const {app,BrowserWindow,Tray,Menu,globalShortcut,screen,ipcMain,nativeImage,Notification}=require('electron');
 const path=require('path'),fs=require('fs'),os=require('os'),{execFile}=require('child_process');
 
-let tray=null,overlay=null,tour=null,shown=false,lastToggle=0;
-const DEF={theme:'light',size:1,speed:1,sound:false,shortcut:'Alt+Space',tourSeen:false,usage:{}};
+let tray=null,overlay=null,tour=null,settingsWin=null,shown=false,lastToggle=0;
+const DEF={theme:'light',size:1,speed:1,sound:false,shortcut:'Alt+Space',hotkeys:[],tourSeen:false,usage:{}};
 let S={...DEF};
 const SF=()=>path.join(app.getPath('userData'),'koi-settings.json');
 const load=()=>{try{S={...DEF,...JSON.parse(fs.readFileSync(SF(),'utf8'))}}catch(e){}};
@@ -69,12 +69,26 @@ function openTour(){
 }
 
 // ---------- tray / settings ----------
-const SHORTCUTS=[['Option + Space','Alt+Space'],['Command + Option + Space','CommandOrControl+Alt+Space'],['Control + Option + Space','Control+Alt+Space'],['Command + Shift + K','CommandOrControl+Shift+K']];
-const label=()=>(SHORTCUTS.find(x=>x[1]===S.shortcut)||SHORTCUTS[0])[0];
+const SYM={Command:'⌘',CommandOrControl:'⌘',Control:'⌃',Alt:'⌥',Shift:'⇧'};
+const pretty=a=>(a||'').split('+').map(p=>SYM[p]||(p==='Return'?'↩':p)).join(' ');
+const label=()=>pretty(S.shortcut);
+const norm=a=>String(a).replace('CommandOrControl','Command').toLowerCase();
+const validAcc=a=>typeof a==='string'&&/^((Command|Control|Alt|Shift)\+)*([A-Z0-9]|F\d{1,2}|Space|Return|Tab|Backspace|Up|Down|Left|Right|[-=,./;'`\[\]\\])$/.test(a)&&(/\+/.test(a)||/^F\d{1,2}$/.test(a));
+function canRegister(acc){globalShortcut.unregisterAll();let ok=false;try{ok=globalShortcut.register(acc,()=>{});if(ok)globalShortcut.unregister(acc)}catch(e){}return ok}
+function launchApp(p,name){S.usage[name]=(S.usage[name]||0)+1;save();execFile('open',['-a',p])}
 function reg(){
   globalShortcut.unregisterAll();
   let ok=false;try{ok=globalShortcut.register(S.shortcut,toggle)}catch(e){}
   if(!ok&&S.shortcut!==DEF.shortcut){S.shortcut=DEF.shortcut;try{globalShortcut.register(S.shortcut,toggle)}catch(e){}}
+  for(const h of S.hotkeys){try{globalShortcut.register(h.acc,()=>launchApp(h.path,h.name))}catch(e){}}
+}
+function openSettings(){
+  if(settingsWin&&!settingsWin.isDestroyed()){settingsWin.focus();return}
+  settingsWin=new BrowserWindow({width:560,height:660,minWidth:480,minHeight:500,titleBarStyle:'hiddenInset',backgroundColor:'#eef1fb',show:false,
+    webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false}});
+  settingsWin.once('ready-to-show',()=>settingsWin.show());
+  settingsWin.loadFile(path.join(__dirname,'renderer','settings.html'));
+  settingsWin.on('closed',()=>{settingsWin=null;reg();buildMenu()});
 }
 function buildMenu(){
   const radio=(key,items)=>items.map(([l,v])=>({label:l,type:'radio',checked:S[key]===v,click:()=>{S[key]=v;save();buildMenu()}}));
@@ -84,7 +98,7 @@ function buildMenu(){
     {label:'Theme',submenu:radio('theme',[['Light','light'],['Dark','dark']])},
     {label:'Size',submenu:radio('size',[['Small',.85],['Medium',1],['Big',1.2],['Huge',1.4]])},
     {label:'Animation speed',submenu:radio('speed',[['Fast',1.3],['Normal',1],['Soft',.7]])},
-    {label:'Shortcut',submenu:SHORTCUTS.map(([l,v])=>({label:l,type:'radio',checked:S.shortcut===v,click:()=>{S.shortcut=v;save();reg();buildMenu()}}))},
+    {label:'Hotkeys…',click:()=>openSettings()},
     {label:'Sounds',type:'checkbox',checked:!!S.sound,click:m=>{S.sound=m.checked;save()}},
     {label:'Launch at login',type:'checkbox',checked:app.getLoginItemSettings().openAtLogin,click:m=>app.setLoginItemSettings({openAtLogin:m.checked})},
     {type:'separator'},
@@ -108,6 +122,29 @@ ipcMain.on('koi:action',(_e,kind,p,name)=>{
   else if(kind==='hide')execFile('osascript',['-e',`tell application "System Events" to set visible of process "${safe}" to false`]);
   else if(kind==='quit')execFile('osascript',['-e',`tell application "${safe}" to quit`]);
 });
+const taken=(acc,skip)=>norm(acc)===norm(S.shortcut)&&skip!=='main'||S.hotkeys.some((h,i)=>i!==skip&&norm(h.acc)===norm(acc));
+ipcMain.handle('koi:s:get',()=>({main:S.shortcut,hk:S.hotkeys,apps:scan().sort((a,b)=>a.name.localeCompare(b.name))}));
+ipcMain.handle('koi:s:pause',()=>{globalShortcut.unregisterAll()});
+ipcMain.handle('koi:s:resume',()=>{reg()});
+ipcMain.handle('koi:s:setMain',(_e,acc)=>{
+  if(!validAcc(acc))return {ok:false,msg:'That key combo is not valid.',where:'m1'};
+  if(taken(acc,'main')&&norm(acc)!==norm(S.shortcut))return {ok:false,msg:'Already used by one of your app hotkeys.',where:'m1'};
+  if(!canRegister(acc)){reg();return {ok:false,msg:'macOS or another app already owns that shortcut.',where:'m1'}}
+  S.shortcut=acc;save();reg();buildMenu();return {ok:true};
+});
+ipcMain.handle('koi:s:add',(_e,acc,name,p)=>{
+  if(!validAcc(acc)||typeof p!=='string'||!p.endsWith('.app'))return {ok:false,msg:'That key combo is not valid.',where:'m2'};
+  if(taken(acc,-1))return {ok:false,msg:'You already use that shortcut.',where:'m2'};
+  if(!canRegister(acc)){reg();return {ok:false,msg:'macOS or another app already owns that shortcut.',where:'m2'}}
+  S.hotkeys.push({acc,name:String(name),path:p});save();reg();return {ok:true};
+});
+ipcMain.handle('koi:s:update',(_e,i,acc)=>{
+  if(!S.hotkeys[i]||!validAcc(acc))return {ok:false,where:'m2'};
+  if(taken(acc,i))return {ok:false,msg:'You already use that shortcut.',where:'m2'};
+  if(norm(acc)!==norm(S.hotkeys[i].acc)&&!canRegister(acc)){reg();return {ok:false,msg:'macOS or another app already owns that shortcut.',where:'m2'}}
+  S.hotkeys[i].acc=acc;save();reg();return {ok:true};
+});
+ipcMain.handle('koi:s:remove',(_e,i)=>{S.hotkeys.splice(i,1);save();reg();return {ok:true}});
 ipcMain.on('koi:tourDone',()=>{
   S.tourSeen=true;save();
   if(tour&&!tour.isDestroyed())tour.close();

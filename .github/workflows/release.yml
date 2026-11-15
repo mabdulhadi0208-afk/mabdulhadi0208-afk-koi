@@ -24,7 +24,13 @@ jobs:
             echo "::error title=build failed::$msg"
           fi
           exit $code
-      - run: ls -la dist
+      - name: Verify signatures
+        shell: bash
+        run: |
+          ls -la dist
+          for a in dist/mac-arm64/Koi.app dist/mac/Koi.app; do
+            if [ -d "$a" ]; then echo "== $a"; codesign -dv "$a" 2>&1 | head -8; codesign --verify --deep --strict "$a" || { echo "::error::signature invalid on $a"; exit 1; }; fi
+          done
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: v1.0.${{ github.run_number }}

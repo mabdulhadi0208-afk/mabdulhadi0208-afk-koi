@@ -1,0 +1,88 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Koi — Hotkeys</title>
+<style>
+:root{--bg:#eef1fb;--card:rgba(255,255,255,.72);--tx:#1b1d2a;--mut:rgba(27,29,42,.55);--ln:rgba(0,0,0,.08);--ac:#0a84ff;--chip:rgba(0,0,0,.06)}
+@media(prefers-color-scheme:dark){:root{--bg:#15172c;--card:rgba(255,255,255,.07);--tx:#f1f2ff;--mut:rgba(230,232,255,.55);--ln:rgba(255,255,255,.1);--chip:rgba(255,255,255,.1)}}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;background:var(--bg);color:var(--tx);-webkit-font-smoothing:antialiased;user-select:none;padding:46px 26px 26px;overflow-y:auto;height:100vh}
+.drag{position:fixed;left:0;right:0;top:0;height:36px;-webkit-app-region:drag}
+h1{font-size:26px;letter-spacing:-.02em;margin-bottom:4px}.sub{color:var(--mut);font-size:13.5px;margin-bottom:22px}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:16px 18px;margin-bottom:16px;backdrop-filter:blur(20px)}
+.card h2{font-size:14px;font-weight:650;margin-bottom:2px}.card p{font-size:12.5px;color:var(--mut);margin-bottom:12px;line-height:1.45}
+.row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--ln)}.row:first-of-type{border-top:0}
+.row .nm{flex:1;font-size:14px;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rec{all:unset;cursor:pointer;min-width:150px;text-align:center;padding:8px 14px;border-radius:11px;background:var(--chip);font:600 14px ui-monospace,Menlo,monospace;transition:transform .35s cubic-bezier(.3,2,.5,1),background .2s,box-shadow .2s}
+.rec:hover{transform:scale(1.04)}
+.rec.on{background:var(--ac);color:#fff;box-shadow:0 0 0 5px rgba(10,132,255,.25);animation:pl 1s ease-in-out infinite}
+@keyframes pl{50%{box-shadow:0 0 0 9px rgba(10,132,255,.12)}}
+.rec.err{background:#ff453a;color:#fff;animation:sh .4s}
+@keyframes sh{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+.btn{all:unset;cursor:pointer;padding:7px 13px;border-radius:10px;background:var(--chip);font-size:13px;font-weight:600;transition:transform .35s cubic-bezier(.3,2,.5,1)}
+.btn:hover{transform:scale(1.06)}.btn.pr{background:var(--ac);color:#fff}
+.x{all:unset;cursor:pointer;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:var(--mut);font-size:16px}.x:hover{background:var(--chip);color:var(--tx)}
+select{font:500 13.5px -apple-system,system-ui;padding:7px 10px;border-radius:10px;border:1px solid var(--ln);background:var(--chip);color:var(--tx);max-width:190px}
+.msg{font-size:12px;color:#ff453a;min-height:16px;margin-top:8px}
+.empty{font-size:13px;color:var(--mut);padding:6px 0 10px}
+.foot{text-align:center;font-size:11.5px;color:var(--mut);margin-top:6px}
+</style></head><body><div class="drag"></div>
+<h1>Hotkeys</h1><div class="sub">Pick your own shortcuts. Click a box, then press the keys you want.</div>
+<div class="card"><h2>Open Koi</h2><p>Brings up the fan around your cursor.</p>
+<div class="row"><div class="nm">Open the fan</div><button class="rec" id="main">…</button><button class="btn" id="reset">Reset</button></div><div class="msg" id="m1"></div></div>
+<div class="card"><h2>App hotkeys</h2><p>Jump straight to an app from anywhere — for example ⌥S for Safari.</p>
+<div id="list"></div><div style="margin-top:10px"><button class="btn pr" id="add">+ Add app hotkey</button></div><div class="msg" id="m2"></div></div>
+<div class="foot">Shortcuts need at least one modifier (⌘ ⌥ ⌃ ⇧), or an F-key. Esc cancels.</div>
+<script>
+const api=window.koiAPI;let st={main:'',hk:[],apps:[]},rec=null;
+const SYM={Command:'⌘',CommandOrControl:'⌘',Control:'⌃',Alt:'⌥',Shift:'⇧'};
+const pretty=a=>!a?'Not set':a.split('+').map(p=>SYM[p]||(p==='Space'?'Space':p==='Return'?'↩':p)).join(' ');
+const KEYS={Minus:'-',Equal:'=',Comma:',',Period:'.',Slash:'/',Semicolon:';',Quote:"'",Backquote:'`',BracketLeft:'[',BracketRight:']',Backslash:'\\',Space:'Space',Enter:'Return',Tab:'Tab',Backspace:'Backspace',ArrowUp:'Up',ArrowDown:'Down',ArrowLeft:'Left',ArrowRight:'Right'};
+function toAccel(e){
+ const c=e.code;let k=null;
+ if(/^Key[A-Z]$/.test(c))k=c[3];else if(/^Digit\d$/.test(c))k=c[5];else if(/^F\d{1,2}$/.test(c))k=c;else if(KEYS[c])k=KEYS[c];
+ if(!k)return null;
+ const m=[];if(e.metaKey)m.push('Command');if(e.ctrlKey)m.push('Control');if(e.altKey)m.push('Alt');if(e.shiftKey)m.push('Shift');
+ if(!m.length&&!/^F\d{1,2}$/.test(k))return {err:'Add a modifier key (⌘ ⌥ ⌃ ⇧)'};
+ return {acc:m.concat(k).join('+')};
+}
+function render(){
+ $('main').textContent=pretty(st.main);
+ const L=$('list');L.innerHTML='';
+ if(!st.hk.length){L.innerHTML='<div class="empty">No app hotkeys yet.</div>'}
+ st.hk.forEach((h,i)=>{const r=document.createElement('div');r.className='row';
+  r.innerHTML=`<div class="nm">${h.name}</div><button class="rec" data-i="${i}">${pretty(h.acc)}</button><button class="x" data-x="${i}" title="Remove">×</button>`;L.appendChild(r)});
+}
+const $=id=>document.getElementById(id);
+async function refresh(){st=await api.s.get();render()}
+async function startRec(btn,done){
+ if(rec)stopRec();
+ await api.s.pause();btn.classList.add('on');btn.dataset.old=btn.textContent;btn.textContent='Press keys…';rec={btn,done};
+}
+async function stopRec(){if(!rec)return;rec.btn.classList.remove('on','err');if(rec.btn.dataset.old)rec.btn.textContent=rec.btn.dataset.old;rec=null;await api.s.resume();render()}
+addEventListener('keydown',async e=>{
+ if(!rec)return;e.preventDefault();
+ if(['Meta','Control','Alt','Shift'].includes(e.key))return;
+ if(e.key==='Escape'){stopRec();return}
+ const r=toAccel(e);if(!r)return;
+ const b=rec.btn,done=rec.done;
+ if(r.err){b.classList.add('err');b.textContent=r.err;setTimeout(()=>{b.classList.remove('err');b.textContent='Press keys…'},900);return}
+ b.classList.remove('on');rec=null;await api.s.resume();
+ const res=await done(r.acc);
+ if(!res.ok){b.classList.add('err');b.textContent='Taken';setTimeout(()=>{b.classList.remove('err');render()},1100);const m=$(res.where||'m1');m.textContent=res.msg||'That shortcut is already used by something else.';setTimeout(()=>m.textContent='',3500)}
+ else{await refresh()}
+});
+$('main').onclick=e=>startRec(e.target,acc=>api.s.setMain(acc));
+$('reset').onclick=async()=>{await api.s.setMain('Alt+Space');refresh()};
+$('add').onclick=async()=>{
+ if(!st.apps.length)return;
+ const row=document.createElement('div');row.className='row';
+ row.innerHTML='<select id="pick">'+st.apps.map((a,i)=>`<option value="${i}">${a.name}</option>`).join('')+'</select><div class="nm"></div><button class="rec" id="newrec">Record…</button><button class="x" id="cancel">×</button>';
+ const L=$('list');const em=L.querySelector('.empty');if(em)em.remove();L.appendChild(row);row.scrollIntoView({behavior:'smooth'});
+ $('cancel').onclick=()=>{stopRec();render()};
+ $('newrec').onclick=ev=>startRec(ev.target,acc=>{const a=st.apps[+$('pick').value];return api.s.addHotkey(acc,a.name,a.path)});
+ $('newrec').click();
+};
+$('list').onclick=async e=>{
+ const x=e.target.closest('[data-x]');if(x){await api.s.removeHotkey(+x.dataset.x);refresh();return}
+ const b=e.target.closest('.rec[data-i]');if(b){const i=+b.dataset.i;startRec(b,acc=>api.s.updateHotkey(i,acc))}
+};
+refresh();
+</script></body></html>
