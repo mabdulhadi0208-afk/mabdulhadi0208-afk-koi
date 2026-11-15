@@ -29,7 +29,7 @@ select{font:500 13.5px -apple-system,system-ui;padding:7px 10px;border-radius:10
 <div class="row"><div class="nm">Open the fan</div><button class="rec" id="main">…</button><button class="btn" id="reset">Reset</button></div><div class="msg" id="m1"></div></div>
 <div class="card"><h2>App hotkeys</h2><p>Jump straight to an app from anywhere — for example ⌥S for Safari.</p>
 <div id="list"></div><div style="margin-top:10px"><button class="btn pr" id="add">+ Add app hotkey</button></div><div class="msg" id="m2"></div></div>
-<div class="foot">Use a modifier + key, an F-key, or just two modifiers (e.g. hold ⌘⌥ and let go — needs Accessibility permission: System Settings → Privacy &amp; Security → Accessibility → Koi on). Esc cancels.</div>
+<div class="foot">Use a modifier + key, an F-key, or just two modifiers (e.g. hold ⌘⌥ — it fires the instant both are down — needs Accessibility permission: System Settings → Privacy &amp; Security → Accessibility → Koi on). Esc cancels.</div>
 <script>
 const api=window.koiAPI;let st={main:'',hk:[],apps:[]},rec=null;
 const SYM={Command:'⌘',CommandOrControl:'⌘',Control:'⌃',Alt:'⌥',Shift:'⇧'};

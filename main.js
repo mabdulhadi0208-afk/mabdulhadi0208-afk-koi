@@ -92,12 +92,13 @@ function startHook(prompt){
 (function(){try{
   const {uIOhook}=require('uiohook-napi');uio=uIOhook;hookLoaded=true;
   const M={56:'Alt',3640:'Alt',29:'Control',3613:'Control',42:'Shift',54:'Shift',3675:'Command',3676:'Command'};
-  const held=new Set();let peak=new Set(),dirty=false;
-  uIOhook.on('keydown',e=>{const m=M[e.keycode];if(m){held.add(m+':'+e.keycode);peak.add(m)}else dirty=true});
-  uIOhook.on('keyup',e=>{const m=M[e.keycode];if(!m)return;held.delete(m+':'+e.keycode);
-    if(held.size===0){const acc=['Command','Control','Alt','Shift'].filter(x=>peak.has(x)).join('+');
-      if(!dirty&&!recording&&peak.size>=2){const c=chords.find(c=>c.acc===acc);if(c)c.fn()}
-      peak=new Set();dirty=false}});
+  const held=new Set();let dirty=false,fired=false;
+  const cur=()=>{const n=new Set([...held].map(x=>x.split(':')[0]));return ['Command','Control','Alt','Shift'].filter(x=>n.has(x)).join('+')};
+  uIOhook.on('keydown',e=>{const m=M[e.keycode];
+    if(!m){dirty=true;return}
+    held.add(m+':'+e.keycode);
+    if(!dirty&&!fired&&!recording){const acc=cur();if(acc.includes('+')){const c=chords.find(c=>c.acc===acc);if(c){fired=true;c.fn()}}}});
+  uIOhook.on('keyup',e=>{const m=M[e.keycode];if(!m)return;held.delete(m+':'+e.keycode);if(held.size===0){dirty=false;fired=false}});
 }catch(e){console.error('key hook unavailable',e&&e.message)}})();
 setInterval(()=>{if(!hookOk&&hookLoaded&&chords.length)startHook(false)},3000);
 let regStatus={main:false,hk:[]};
