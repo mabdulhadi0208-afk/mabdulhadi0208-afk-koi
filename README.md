@@ -24,3 +24,6 @@ npm start          # run
 npm run dist       # build DMGs (on a Mac)
 ```
 Releases are built by GitHub Actions: push a tag like `v1.0.0`.
+
+## Auto-update
+Koi checks GitHub Releases in the background (every 30 s, on launch, and after waking from sleep), downloads the new version, verifies it and shows a floating update card. One click on **Restart & update** swaps the app and relaunches it in about 3 seconds. Menu-bar icon → **Check for updates** forces a check.
