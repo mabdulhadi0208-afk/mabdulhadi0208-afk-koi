@@ -1,0 +1,38 @@
+{
+  "name": "koi",
+  "version": "1.0.0",
+  "description": "Koi — a springy, fluid fan app switcher for macOS",
+  "main": "main.js",
+  "author": "Koi",
+  "license": "MIT",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --mac"
+  },
+  "devDependencies": {
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.koi.switcher",
+    "productName": "Koi",
+    "files": ["main.js", "preload.js", "renderer/**", "assets/**"],
+    "directories": { "buildResources": "build", "output": "dist" },
+    "mac": {
+      "category": "public.app-category.utilities",
+      "target": [{ "target": "dmg", "arch": ["arm64", "x64"] }],
+      "artifactName": "Koi-mac-${arch}.dmg",
+      "extendInfo": { "LSUIElement": true },
+      "identity": null,
+      "hardenedRuntime": false
+    },
+    "dmg": {
+      "title": "Koi",
+      "window": { "width": 540, "height": 380 },
+      "contents": [
+        { "x": 140, "y": 190, "type": "file" },
+        { "x": 400, "y": 190, "type": "link", "path": "/Applications" }
+      ]
+    }
+  }
+}
