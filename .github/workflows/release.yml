@@ -1,7 +1,7 @@
 name: Build Koi DMG
 on:
   push:
-    tags: ['v*']
+    branches: [main]
   workflow_dispatch:
 permissions:
   contents: write
@@ -14,13 +14,13 @@ jobs:
         with: { node-version: 20 }
       - run: npm install
       - run: npx electron-builder --mac --arm64 --x64 --publish never
-      - name: Ad-hoc sign (needed so Apple Silicon will launch it)
-        run: |
-          for f in dist/*.dmg; do echo "built $f"; done
+      - run: ls -la dist
       - uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
+          tag_name: v1.0.${{ github.run_number }}
+          name: Koi 1.0.${{ github.run_number }}
           files: dist/*.dmg
           generate_release_notes: true
+          make_latest: true
       - uses: actions/upload-artifact@v4
         with: { name: koi-dmg, path: dist/*.dmg }
