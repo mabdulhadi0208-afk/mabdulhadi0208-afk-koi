@@ -263,7 +263,7 @@ function open(){
  dim.classList.add('on');
  
  // staged reveal
- S.list.forEach((a,i)=>{setTimeout(()=>{if(!S.open)return;const n=S.list.length;a.ang.t=slotAng(S.list.indexOf(a),n);a.o.t=1;a.s.t=1;a.rr.t=0;a.ang.v+=-60;tone(380+i*75,.1,.03,'sine',1.5)},60+i*70/S.speed)});
+ S.list.forEach((a,i)=>{setTimeout(()=>{if(!S.open)return;const n=S.list.length;a.ang.t=slotAng(S.list.indexOf(a),n);a.o.t=1;a.s.t=1;a.rr.t=0;a.ang.v+=-130;tone(380+i*75,.1,.03,'sine',1.5)},60+i*70/S.speed)});
  selFx();
  // cursor-follow hover from current mouse
  setTimeout(()=>hover(S.mx,S.my),60);
@@ -294,20 +294,20 @@ function frame(){
  const z=S.size,sp=S.speed;
  const sel=S.list[S.sel];
  APPS.forEach(a=>{
-  const k=130*sp*sp,c=11.5*sp;
-  st(a.ang,k,c);st(a.push,240,17);st(a.s,190,15);st(a.o,190,22);st(a.rr,k,c);
+  const k=130*sp*sp,c=8.6*sp;
+  st(a.ang,k,c);st(a.push,250,11);st(a.s,175,10);st(a.o,190,22);st(a.rr,k,c);
   const sc=Math.max(.01,a.s.x)*z;
   a.el.style.opacity=Math.max(0,Math.min(1,a.o.x));
   a.el.style.visibility=a.o.x<.01&&a.o.t===0?'hidden':'visible';
-  const sq=Math.min(.06,Math.abs(a.ang.v)*.0006);
+  const sq=Math.min(.13,Math.abs(a.ang.v)*.0013);
   const pxx=S.mx?(S.mx-S.cx)*.02:0,pyy=S.my?(S.my-S.cy)*.02:0;
   const tm=performance.now()/1000,ii=Math.max(0,S.list.indexOf(a)),fl=S.open?Math.sin(tm*1.1+ii*.9)*.5:0;
   a.el.style.transform=`translate(${S.cx+pxx}px,${S.cy+pyy}px) rotate(${a.ang.x+fl}deg) translate(${(a.push.x+9*a.mg.x)*z}px,0) scale(${sc*(1+sq)},${sc*(1-sq)})`;
   const mr=(R0+R1)/2;
   const idx2=S.list.indexOf(a);let lw=0;
   if(S.open&&S.hp&&idx2>=0&&S.pd>R0-30&&S.pd<R1+70){const df=Math.abs(((S.pa-slotAng(idx2,S.list.length))+540)%360-180);lw=Math.exp(-Math.pow(df/24,2))}
-  a.mg.t=lw;st(a.mg,220,17);
-  const hv=(a===sel&&S.open?1.1:1)*(1+.22*Math.max(0,a.mg.x));
+  a.mg.t=lw;st(a.mg,210,10.5);
+  const hv=(a===sel&&S.open?1.1:1)*(1+.3*Math.max(0,a.mg.x));
   a.ct.style.transform=`translate(${mr}px,${S.open?Math.sin(tm*1.3+ii)*1.6:0}px) rotate(${-a.ang.x}deg) scale(${hv}) translate(-25px,-31px)`;
   a.ct.style.transformOrigin='0 0';
   a.el.style.pointerEvents='none';
@@ -404,7 +404,7 @@ const later=(ms,f)=>setTimeout(()=>{if(!cancel)f()},ms);
 function gate(){S.film=true;F.style.display='block';bk.style.transition='none';bk.style.opacity=1;scene.innerHTML='<div class="glow"></div><div class="brand">'+logo(90).replace(/class="(rg|dt)"/g,'')+'<p style="animation:none;opacity:1;font-size:17px;margin-top:4px">The Koi film</p><div class="btns" style="animation:none;opacity:1"><button class="pr" id="g1">▶ Play with sound</button><button id="g0">Play without sound</button></div></div>';$('#g1').onclick=()=>play(true);$('#g0').onclick=()=>play(false)}
 
 const KV=(()=>{const v='__KOI_VERSION__';return v.indexOf('__')===0?'dev':v})();
-const WHATS_NEW=[['🫧','Springy menu-bar popover','A custom jelly panel replaces the stock macOS menu.'],['⌨️','Your own hotkeys','Pick the summon key and bind any app to its own shortcut.'],['⬆️','Auto-update','Koi finds, downloads and swaps itself in the background.'],['⌘','Modifier-only hotkeys','Touch ⌘⌥ (any two modifiers) and Koi opens instantly — no letter, no release.'],['🫧','More spring, more jelly','Every window, button and panel got bouncier, squishier motion.'],['🎬','A film that updates with Koi','This intro is rebuilt on every release.']];
+const WHATS_NEW=[['🫧','Springy menu-bar popover','A custom jelly panel replaces the stock macOS menu.'],['⌨️','Your own hotkeys','Pick the summon key and bind any app to its own shortcut.'],['⬆️','Auto-update','Koi finds, downloads and swaps itself in the background.'],['⌘','Modifier-only hotkeys','Touch ⌘⌥ (any two modifiers) and Koi opens instantly — no letter, no release.'],['🫧','More spring, more jelly','Every window, button and panel got bouncier, squishier motion.'],['🧈','Jellier everything','Bouncier fan, squishier icons, springier panels — plus your most-used apps now sit at the top.'],['🎬','A film that updates with Koi','This intro is rebuilt on every release.']];
 const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 function say(n,t,d){cap.classList.remove('in');void cap.offsetWidth;cap.querySelector('.n').textContent=n;cap.querySelector('b').textContent=t;cap.querySelector('p').textContent=d;cap.classList.add('in');pg.style.width=(parseInt(n)/14*100)+'%';bell(784,.03,1.4);whoosh(.025)}
 function nocap(){cap.classList.remove('in');cap.style.opacity=0}
@@ -450,7 +450,7 @@ async function tutorial(){
  {const[x,y]=wp('Finder');await glide(x,y,1000);await sleep(2600)}
  say('05','Type to jump','Press a letter to filter the ring. Press it again to cycle matching apps.');
  await glide(S.cx,S.cy,800);key('M',1000);kd('m');await sleep(1500);key('M',900);kd('m');await sleep(1400);key('M',900);kd('m');await sleep(1200);key('⌫',800);kd('Backspace');await sleep(1600);
- say('06','Scroll for more','Eighteen apps, eight wedges — roll the wheel and the whole ring rotates.');
+ say('06','Scroll for more','Eighteen apps (your most-used first), eight wedges — roll the wheel and the whole ring rotates.');
  key('Scroll ↕',3200);
  for(let i=0;i<4;i++){window.dispatchEvent(new WheelEvent('wheel',{deltaY:100,cancelable:true}));await sleep(520)}
  await sleep(600);

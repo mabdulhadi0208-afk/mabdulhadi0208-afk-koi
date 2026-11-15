@@ -80,7 +80,7 @@ let last=performance.now();
 let S={theme:'light',size:1,speed:1,sound:false,login:false,autoDownload:true,shortcut:'⌥ Space',version:'',upd:{status:'idle'}};
 const segs={};
 function mkSeg(id,key){const el=$('#'+id),th=el.querySelector('.th'),btns=[...el.querySelectorAll('button')];
- const sx=new Sp(0,230,14),sw=new Sp(10,230,14);
+ const sx=new Sp(0,230,10),sw=new Sp(10,230,10);
  const apply=()=>{th.style.transform=`translateX(${sx.x}px)`;th.style.width=Math.max(8,sw.x)+'px'};sx.cb=apply;sw.cb=apply;
  let first=true;
  const upd=v=>{let i=btns.findIndex(b=>+b.dataset.v===+v||b.dataset.v===String(v));if(i<0)i=0;btns.forEach((b,j)=>b.classList.toggle('on',j===i));
@@ -92,27 +92,27 @@ function mkSeg(id,key){const el=$('#'+id),th=el.querySelector('.th'),btns=[...el
  btns.forEach(b=>b.onclick=()=>{const v=b.dataset.v;const val=key==='theme'?v:+v;S[key]=val;upd(val);api&&api.set(key,val);if(key==='theme')document.body.classList.toggle('dk',val==='dark');tick()});
  segs[key]=upd}
 mkSeg('s-theme','theme');mkSeg('s-size','size');mkSeg('s-speed','speed');
-function mkToggle(row,tg,key){const el=$('#'+tg),th=el.querySelector('i');const x=new Sp(3,320,15),w=new Sp(22,320,15);
+function mkToggle(row,tg,key){const el=$('#'+tg),th=el.querySelector('i');const x=new Sp(3,320,10),w=new Sp(22,320,10);
  const ap=()=>{th.style.transform=`translateX(${x.x}px)`;th.style.width=Math.max(18,Math.min(32,w.x+Math.abs(x.v)*.05))+'px'};x.cb=ap;w.cb=ap;
  const upd=on=>{el.classList.toggle('on',!!on);x.t=on?23:3;w.t=22;ap()};
  $('#'+row).onclick=()=>{S[key]=!S[key];upd(S[key]);w.x=34;x.v+=S[key]?220:-220;api&&api.set(key,S[key]);tick()};
  upd.init=on=>{el.classList.toggle('on',!!on);x.x=x.t=on?23:3;ap()};return upd}
 const tSound=mkToggle('r-sound','t-sound','sound'),tLogin=mkToggle('r-login','t-login','login'),tAuto=mkToggle('r-auto','t-auto','autoDownload');
 // hover / press jelly on rows & buttons
-function jelly(el,hov=1.035,tx=4){const s=new Sp(1,300,14),x=new Sp(0,300,14),q=new Sp(0,300,12);
+function jelly(el,hov=1.05,tx=5){const s=new Sp(1,300,9.5),x=new Sp(0,300,9.5),q=new Sp(0,300,8.5);
  const ap=()=>{el.style.transform=`translateX(${x.x}px) scale(${s.x*(1+q.x*.04)},${s.x*(1-q.x*.04)})`};s.cb=ap;x.cb=ap;q.cb=ap;
  el.addEventListener('pointerenter',()=>{s.t=hov;x.t=tx;q.v+=2});el.addEventListener('pointerleave',()=>{s.t=1;x.t=0});
  el.addEventListener('pointerdown',()=>{s.t=.95;q.v-=4});el.addEventListener('pointerup',()=>{s.t=hov;q.v+=5})}
 $$('.row').forEach(r=>jelly(r));jelly($('#open'),1.045,0);jelly($('#upgo'),1.1,0);
 // ---------- entrance / exit ----------
-const panel=$('#panel');let ps=new Sp(.7,200,13),py=new Sp(-18,200,13),po=new Sp(0,300,26),pq=new Sp(0,200,12);let items=[],itemSp=[];
+const panel=$('#panel');let ps=new Sp(.7,210,9.5),py=new Sp(-18,210,9.5),po=new Sp(0,300,26),pq=new Sp(0,200,12);let items=[],itemSp=[];
 function apPanel(){panel.style.opacity=Math.max(0,Math.min(1,po.x));panel.style.transform=`translateY(${py.x}px) scale(${ps.x*(1+pq.x*.02)},${ps.x*(1-pq.x*.02)})`}
 [ps,py,po,pq].forEach(s=>s.cb=apPanel);
 function show(anchor){
  SP.forEach(s=>{});panel.style.transformOrigin=(anchor||160)+'px 0px';
  ps.x=.72;ps.v=0;ps.t=1;py.x=-20;py.v=0;py.t=0;po.x=0;po.v=0;po.t=1;pq.v=-6;
  itemSp.forEach(x=>SP.delete(x));itemSp=[];
- items=$$('.it');items.forEach((el,i)=>{el.style.opacity=0;const y=new Sp(16,230,14),o=new Sp(0,300,24),sc=new Sp(.92,230,14);
+ items=$$('.it');items.forEach((el,i)=>{el.style.opacity=0;const y=new Sp(16,230,10),o=new Sp(0,300,24),sc=new Sp(.9,230,9.5);
   const apply=()=>{el.style.opacity=Math.max(0,Math.min(1,o.x));el.style.translate='0 '+y.x+'px';el.style.scale=String(sc.x)};
   y.cb=apply;o.cb=apply;sc.cb=apply;itemSp.push(y,o,sc);setTimeout(()=>{y.t=0;o.t=1;sc.t=1},60+i*28)});
  setTimeout(()=>{api&&api.size(panel.offsetHeight+30)},30);

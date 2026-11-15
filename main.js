@@ -34,7 +34,7 @@ async function iconOf(p){
 }
 async function getApps(){
   const [list,run]=[scan(),await running()];
-  const scored=list.map(a=>{const pr=PRIORITY.indexOf(a.name);return {...a,running:run.has(a.name),freq:(run.has(a.name)?400:0)+(S.usage[a.name]||0)*25+(pr>=0?(60-pr*2):0)}});
+  const scored=list.map(a=>{const pr=PRIORITY.indexOf(a.name);return {...a,running:run.has(a.name),freq:(S.usage[a.name]||0)*1000+(run.has(a.name)?400:0)+(pr>=0?(60-pr*2):0)}});
   scored.sort((a,b)=>b.freq-a.freq);
   const top=scored.slice(0,48);
   await Promise.all(top.map(async a=>{a.icon=await iconOf(a.path)}));
