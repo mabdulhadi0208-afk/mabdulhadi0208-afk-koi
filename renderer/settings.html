@@ -57,9 +57,10 @@ async function startRec(btn,done){
  await api.s.pause();btn.classList.add('on');btn.dataset.old=btn.textContent;btn.textContent='Press keys…';rec={btn,done};
 }
 async function stopRec(){if(!rec)return;rec.btn.classList.remove('on','err');if(rec.btn.dataset.old)rec.btn.textContent=rec.btn.dataset.old;rec=null;await api.s.resume();render()}
+addEventListener('keyup',e=>{if(rec&&['Meta','Control','Alt','Shift'].includes(e.key)){const m=(e.metaKey?'⌘ ':'')+(e.ctrlKey?'⌃ ':'')+(e.altKey?'⌥ ':'')+(e.shiftKey?'⇧ ':'');rec.btn.textContent=m?m+'…':'Press keys…'}});
 addEventListener('keydown',async e=>{
  if(!rec)return;e.preventDefault();
- if(['Meta','Control','Alt','Shift'].includes(e.key))return;
+ if(['Meta','Control','Alt','Shift'].includes(e.key)){const m=(e.metaKey?'⌘ ':'')+(e.ctrlKey?'⌃ ':'')+(e.altKey?'⌥ ':'')+(e.shiftKey?'⇧ ':'');rec.btn.textContent=m?m+'…':'Press keys…';return}
  if(e.key==='Escape'){stopRec();return}
  const r=toAccel(e);if(!r)return;
  const b=rec.btn,done=rec.done;
