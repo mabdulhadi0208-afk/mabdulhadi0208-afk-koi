@@ -13,7 +13,7 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 20 }
       - run: npm install
-      - run: sed -i "s/__KOI_VERSION__/1.0.${{ github.run_number }}/" renderer/app.html
+      - run: sed -i.bak "s/__KOI_VERSION__/1.0.${{ github.run_number }}/" renderer/app.html && rm renderer/app.html.bak
       - name: Build DMGs (retry on flaky hdiutil)
         shell: bash
         run: |
