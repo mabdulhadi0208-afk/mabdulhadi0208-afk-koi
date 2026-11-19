@@ -263,7 +263,7 @@ function open(){
  dim.classList.add('on');
  
  // staged reveal
- S.list.forEach((a,i)=>{setTimeout(()=>{if(!S.open)return;const n=S.list.length;a.ang.t=slotAng(S.list.indexOf(a),n);a.o.t=1;a.s.t=1;a.rr.t=0;a.ang.v+=-130;tone(380+i*75,.1,.03,'sine',1.5)},60+i*70/S.speed)});
+ S.list.forEach((a,i)=>{setTimeout(()=>{if(!S.open)return;const n=S.list.length;a.ang.t=slotAng(S.list.indexOf(a),n);a.o.t=1;a.s.t=1;a.rr.t=0;a.ang.v+=-90;tone(380+i*75,.1,.03,'sine',1.5)},60+i*70/S.speed)});
  selFx();
  // cursor-follow hover from current mouse
  setTimeout(()=>hover(S.mx,S.my),60);
@@ -294,20 +294,20 @@ function frame(){
  const z=S.size,sp=S.speed;
  const sel=S.list[S.sel];
  APPS.forEach(a=>{
-  const k=130*sp*sp,c=8.6*sp;
-  st(a.ang,k,c);st(a.push,250,11);st(a.s,175,10);st(a.o,190,22);st(a.rr,k,c);
+  const k=130*sp*sp,scr=performance.now()<(S.scr||0),c=scr?2.05*Math.sqrt(k):9.6*sp;
+  st(a.ang,k,c);st(a.push,240,12.5);st(a.s,175,12);st(a.o,190,22);st(a.rr,k,c);
   const sc=Math.max(.01,a.s.x)*z;
   a.el.style.opacity=Math.max(0,Math.min(1,a.o.x));
   a.el.style.visibility=a.o.x<.01&&a.o.t===0?'hidden':'visible';
-  const sq=Math.min(.13,Math.abs(a.ang.v)*.0013);
+  const sq=scr?0:Math.min(.07,Math.abs(a.ang.v)*.0007);
   const pxx=S.mx?(S.mx-S.cx)*.02:0,pyy=S.my?(S.my-S.cy)*.02:0;
   const tm=performance.now()/1000,ii=Math.max(0,S.list.indexOf(a)),fl=S.open?Math.sin(tm*1.1+ii*.9)*.5:0;
   a.el.style.transform=`translate(${S.cx+pxx}px,${S.cy+pyy}px) rotate(${a.ang.x+fl}deg) translate(${(a.push.x+9*a.mg.x)*z}px,0) scale(${sc*(1+sq)},${sc*(1-sq)})`;
   const mr=(R0+R1)/2;
   const idx2=S.list.indexOf(a);let lw=0;
   if(S.open&&S.hp&&idx2>=0&&S.pd>R0-30&&S.pd<R1+70){const df=Math.abs(((S.pa-slotAng(idx2,S.list.length))+540)%360-180);lw=Math.exp(-Math.pow(df/24,2))}
-  a.mg.t=lw;st(a.mg,210,10.5);
-  const hv=(a===sel&&S.open?1.1:1)*(1+.3*Math.max(0,a.mg.x));
+  a.mg.t=lw;st(a.mg,210,12.5);
+  const hv=(a===sel&&S.open?1.1:1)*(1+.26*Math.max(0,a.mg.x));
   a.ct.style.transform=`translate(${mr}px,${S.open?Math.sin(tm*1.3+ii)*1.6:0}px) rotate(${-a.ang.x}deg) scale(${hv}) translate(-25px,-31px)`;
   a.ct.style.transformOrigin='0 0';
   a.el.style.pointerEvents='none';
@@ -352,7 +352,7 @@ addEventListener('keydown',e=>{
  }
 });
 let wt=0;
-addEventListener('wheel',e=>{if(S.film&&e.isTrusted)return;if(!S.open)return;e.preventDefault();const now=performance.now();if(now-wt<130)return;wt=now;
+addEventListener('wheel',e=>{if(S.film&&e.isTrusted)return;if(!S.open)return;e.preventDefault();const now=performance.now();if(now-wt<130)return;wt=now;S.scr=now+900;
  const dir=(e.deltaY||e.deltaX)>0?1:-1,mx=Math.max(0,(S.all||[]).length-CAP),no=Math.max(0,Math.min(mx,(S.off||0)+dir));if(no===S.off)return;
  const prev=new Set(S.list);S.off=no;S.list=S.all.slice(no,no+CAP);const n=S.list.length;
  prev.forEach(a=>{if(!S.list.includes(a))a.ang.t=a.ang.t-dir*55});
@@ -404,7 +404,7 @@ const later=(ms,f)=>setTimeout(()=>{if(!cancel)f()},ms);
 function gate(){S.film=true;F.style.display='block';bk.style.transition='none';bk.style.opacity=1;scene.innerHTML='<div class="glow"></div><div class="brand">'+logo(90).replace(/class="(rg|dt)"/g,'')+'<p style="animation:none;opacity:1;font-size:17px;margin-top:4px">The Koi film</p><div class="btns" style="animation:none;opacity:1"><button class="pr" id="g1">▶ Play with sound</button><button id="g0">Play without sound</button></div></div>';$('#g1').onclick=()=>play(true);$('#g0').onclick=()=>play(false)}
 
 const KV=(()=>{const v='__KOI_VERSION__';return v.indexOf('__')===0?'dev':v})();
-const WHATS_NEW=[['01','Springy menu-bar popover','A custom jelly panel replaces the stock macOS menu.'],['02','Your own hotkeys','Pick the summon key and bind any app to its own shortcut. Your choice now survives updates.'],['03','Auto-update','Koi finds, downloads and swaps itself in the background, and keeps its permissions.'],['04','Modifier-only hotkeys','Touch the two modifiers (like Command + Option) and Koi opens instantly.'],['05','More spring, more jelly','Bouncier fan, squishier icons and springier panels everywhere.'],['06','Most-used apps first','Your favorites now sit at the top of the fan.'],['07','Fast by default','Koi opens at the quick speed out of the box.'],['08','A film that updates with Koi','This intro is rebuilt on every release.']];
+const WHATS_NEW=[['01','Springy menu-bar popover','A custom jelly panel replaces the stock macOS menu.'],['02','Your own hotkeys','Pick the summon key and bind any app to its own shortcut. Your choice now survives updates.'],['03','Auto-update','Koi finds, downloads and swaps itself in the background, and keeps its permissions.'],['04','Modifier-only hotkeys','Touch the two modifiers (like Command + Option) and Koi opens instantly.'],['05','Drift-style springs','Springy, fluid motion everywhere, tuned down a touch, and no wobble while you scroll.'],['06','Most-used apps first','Your favorites now sit at the top of the fan.'],['07','Fast by default','Koi opens at the quick speed out of the box.'],['08','A film that updates with Koi','This intro is rebuilt on every release.']];
 const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 function say(n,t,d){cap.classList.remove('in');void cap.offsetWidth;cap.querySelector('.n').textContent=n;cap.querySelector('b').textContent=t;cap.querySelector('p').textContent=d;cap.classList.add('in');pg.style.width=(parseInt(n)/14*100)+'%';bell(784,.03,1.4);whoosh(.025)}
 function nocap(){cap.classList.remove('in');cap.style.opacity=0}

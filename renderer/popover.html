@@ -99,7 +99,7 @@ function mkToggle(row,tg,key){const el=$('#'+tg),th=el.querySelector('i');const 
  upd.init=on=>{el.classList.toggle('on',!!on);x.x=x.t=on?23:3;ap()};return upd}
 const tSound=mkToggle('r-sound','t-sound','sound'),tLogin=mkToggle('r-login','t-login','login'),tAuto=mkToggle('r-auto','t-auto','autoDownload');
 // hover / press jelly on rows & buttons
-function jelly(el,hov=1.05,tx=5){const s=new Sp(1,300,9.5),x=new Sp(0,300,9.5),q=new Sp(0,300,8.5);
+function jelly(el,hov=1.05,tx=5){const s=new Sp(1,300,11),x=new Sp(0,300,11),q=new Sp(0,300,10);
  const ap=()=>{el.style.transform=`translateX(${x.x}px) scale(${s.x*(1+q.x*.04)},${s.x*(1-q.x*.04)})`};s.cb=ap;x.cb=ap;q.cb=ap;
  el.addEventListener('pointerenter',()=>{s.t=hov;x.t=tx;q.v+=2});el.addEventListener('pointerleave',()=>{s.t=1;x.t=0});
  el.addEventListener('pointerdown',()=>{s.t=.95;q.v-=4});el.addEventListener('pointerup',()=>{s.t=hov;q.v+=5})}
