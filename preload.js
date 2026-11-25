@@ -2,8 +2,11 @@ const {contextBridge,ipcRenderer}=require('electron');
 const sub=(ch,cb)=>ipcRenderer.on(ch,(_e,d)=>cb(d));
 contextBridge.exposeInMainWorld('koiAPI',{
   onShow:cb=>sub('koi:show',cb),
-  onHide:cb=>ipcRenderer.on('koi:hide',()=>cb()),
+  onApps:cb=>sub('koi:apps',cb),
+  onSettings:cb=>sub('koi:settings',cb),
+  onClose:cb=>ipcRenderer.on('koi:close',()=>cb()),
   hide:()=>ipcRenderer.send('koi:hide'),
+  iconBad:p=>ipcRenderer.send('koi:iconBad',p),
   launch:(p,n)=>ipcRenderer.send('koi:launch',p,n),
   action:(k,p,n)=>ipcRenderer.send('koi:action',k,p,n),
   tourDone:()=>ipcRenderer.send('koi:tourDone'),
@@ -14,7 +17,8 @@ contextBridge.exposeInMainWorld('koiAPI',{
     setMain:a=>ipcRenderer.invoke('koi:s:setMain',a),
     addHotkey:(a,n,p)=>ipcRenderer.invoke('koi:s:add',a,n,p),
     updateHotkey:(i,a)=>ipcRenderer.invoke('koi:s:update',i,a),
-    removeHotkey:i=>ipcRenderer.invoke('koi:s:remove',i)
+    removeHotkey:i=>ipcRenderer.invoke('koi:s:remove',i),
+    openAccess:()=>ipcRenderer.send('koi:s:openAccess')
   },
   pop:{
     get:()=>ipcRenderer.invoke('pop:get'),
@@ -28,6 +32,7 @@ contextBridge.exposeInMainWorld('koiAPI',{
   upd:{
     state:()=>ipcRenderer.invoke('upd:action','state'),
     onState:cb=>sub('upd:state',cb),
+    onHide:cb=>ipcRenderer.on('upd:hide',()=>cb()),
     action:a=>ipcRenderer.invoke('upd:action',a)
   }
 });

@@ -8,9 +8,12 @@ const path = require('path');
 const REPO = 'mabdulhadi0208-afk/mabdulhadi0208-afk-koi';
 const ARCH = process.arch === 'arm64' ? 'arm64' : 'x64';
 const ZIP = `Koi-mac-${ARCH}.zip`, DMG = `Koi-mac-${ARCH}.dmg`;
-let C = null, timer = null, popup = null, snoozedUntil = 0, skipVersion = null, polling = false, misses = 0, lastTag = null, lastCheck = 0, dlProc = null;
+let C = null, timer = null, cancelled = false, popup = null, snoozedUntil = 0, skipVersion = null, polling = false, misses = 0, lastTag = null, lastCheck = 0, dlProc = null;
 const state = { status: 'idle', latest: null, url: null, size: 0, progress: 0, bytes: 0, speed: 0, eta: 0, error: null, staged: null, isZip: true };
 
+// a quiet look at GitHub every 10 minutes (a HEAD request, no download), plus on launch, on wake and when you
+// open the menu-bar popover; the moment a newer tag shows up the full check runs
+const POLL = 10 * 60000;
 const semver = v => String(v).replace(/^v/, '').split('.').map(n => parseInt(n, 10) || 0);
 const newer = (a, b) => { const A = semver(a), B = semver(b); for (let i = 0; i < 3; i++) { if ((A[i] || 0) > (B[i] || 0)) return true; if ((A[i] || 0) < (B[i] || 0)) return false; } return false; };
 const same = (a, b) => semver(a).join('.') === semver(b).join('.');
@@ -19,13 +22,14 @@ const latestTag = () => sh('curl', ['-sI', '-o', '/dev/null', '-w', '%{redirect_
 async function probe(url) { const h = await sh('curl', ['-sIL', url], { timeout: 15000 }).catch(() => ''); const codes = [...h.matchAll(/^HTTP\/[\d.]+ (\d{3})/gm)].map(m => +m[1]); const len = [...h.matchAll(/^content-length:\s*(\d+)/gmi)].map(m => +m[1]); return { ok: codes.length > 0 && codes[codes.length - 1] === 200, size: len.length ? len[len.length - 1] : 0 }; }
 function stagedVersion(appPath) {
   try { const pl = fs.readFileSync(path.join(appPath, 'Contents', 'Info.plist'), 'utf8'); const v = /CFBundleShortVersionString<\/key>\s*<string>([^<]+)/.exec(pl)?.[1]; if (v) return v; } catch {}
-  try { return execFileSync('defaults', ['read', path.join(appPath, 'Contents', 'Info.plist'), 'CFBundleShortVersionString']).toString().trim(); } catch { return null; }
+  try { return execFileSync('defaults', ['read', path.join(appPath, 'Contents', 'Info.plist'), 'CFBundleShortVersionString'], { timeout: 3000 }).toString().trim(); } catch { return null; }
 }
 const bundlePath = () => { const p = process.execPath; const i = p.indexOf('.app/Contents/MacOS/'); return i > 0 ? p.slice(0, i + 4) : null; };
 const fmtMB = b => (b / 1048576).toFixed(1) + ' MB';
 const updDir = () => path.join(C.app.getPath('userData'), 'update');
 const log = (...a) => { try { fs.mkdirSync(C.app.getPath('logs'), { recursive: true }); fs.appendFileSync(path.join(C.app.getPath('logs'), 'koi.log'), `[${new Date().toISOString()}] updater: ${a.join(' ')}\n`); } catch {} };
-function clearStaged() { try { fs.rmSync(updDir(), { recursive: true, force: true }); } catch {} state.staged = null; }
+// removing a staged ~200 MB app happens off the main thread, so the menu bar never stalls
+function clearStaged() { const d = updDir(), gone = d + '.old-' + Date.now(); try { fs.renameSync(d, gone); fs.promises.rm(gone, { recursive: true, force: true }).catch(() => {}); } catch {} state.staged = null; }
 const snapshot = () => ({ ...state, current: C.app.getVersion(), lastCheck });
 function push() { const s = snapshot(); C.onState && C.onState(s); if (popup && !popup.isDestroyed()) { try { popup.webContents.send('upd:state', s); } catch {} } }
 function set(patch) { Object.assign(state, patch); push(); }
@@ -33,15 +37,16 @@ function set(patch) { Object.assign(state, patch); push(); }
 function showCard() {
   if (!C.settings().updateCard) return;
   if (popup && !popup.isDestroyed()) { if (!popup.isVisible()) popup.showInactive(); push(); return; }
-  const d = screen.getPrimaryDisplay().workArea, w = 540, h = 200;
+  const d = screen.getPrimaryDisplay().workArea, w = 600, h = 268;
   popup = new BrowserWindow({ width: w, height: h, x: Math.round(d.x + d.width / 2 - w / 2), y: d.y + 6, frame: false, transparent: true, hasShadow: false, resizable: false, alwaysOnTop: true, skipTaskbar: true, focusable: true, fullscreenable: false, backgroundColor: '#00000000', show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false } });
   popup.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true }); popup.setAlwaysOnTop(true, 'screen-saver');
   popup.loadFile(path.join(__dirname, 'renderer', 'update.html'));
-  popup.once('ready-to-show', () => { popup.showInactive(); push(); });
+  popup.once('ready-to-show', () => { if (!popup || popup.isDestroyed()) return; popup.showInactive(); push(); });
   popup.on('closed', () => (popup = null));
 }
-function hideCard() { if (popup && !popup.isDestroyed()) popup.hide(); }
+// the card folds itself away first (it listens for 'upd:hide'), then the window is hidden
+function hideCard() { if (popup && !popup.isDestroyed() && popup.isVisible()) { try { popup.webContents.send('upd:hide'); } catch {} setTimeout(() => { if (popup && !popup.isDestroyed()) popup.hide(); }, 240); } }
 const showCardIfAllowed = manual => { if (manual || Date.now() > snoozedUntil) showCard(); };
 
 async function check(manual) {
@@ -68,7 +73,8 @@ async function check(manual) {
 async function download() {
   if (!state.url || ['downloading', 'unpacking', 'installing'].includes(state.status)) return;
   if (state.staged) { const sv = stagedVersion(state.staged); if (sv && same(sv, state.latest)) { set({ status: 'ready' }); return; } clearStaged(); }
-  const dir = updDir(); fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true });
+  const dir = updDir(); await fs.promises.rm(dir, { recursive: true, force: true }).catch(() => {}); fs.mkdirSync(dir, { recursive: true });
+  cancelled = false;
   const file = path.join(dir, state.isZip ? ZIP : DMG), mnt = path.join(dir, 'mnt');
   let prog = null;
   try {
@@ -77,10 +83,11 @@ async function download() {
     prog = setInterval(() => { try { const b = fs.statSync(file).size, now = Date.now(), sp = (b - lastB) / Math.max(.001, (now - lastT) / 1000); lastB = b; lastT = now;
       set({ bytes: b, speed: sp, progress: state.size ? Math.min(99, Math.round(b / state.size * 100)) : 0, eta: sp > 0 && state.size ? Math.round((state.size - b) / sp) : 0 }); } catch {} }, 300);
     let ok = false, err = null;
-    for (let i = 0; i < 3 && !ok; i++) {
+    for (let i = 0; i < 3 && !ok && !cancelled; i++) {
       try { await new Promise((res, rej) => { dlProc = execFile('curl', ['-L', '--fail', '--silent', '--show-error', '-C', '-', '--retry', '2', '-o', file, state.url], { timeout: 900000 }, (e, o, se) => { dlProc = null; e ? rej(new Error((se || e.message).trim())) : res(); }); }); ok = true; }
-      catch (e) { err = e; log('download attempt', i + 1, 'failed:', e.message); await new Promise(r => setTimeout(r, 1500)); }
+      catch (e) { err = e; if (cancelled) break; log('download attempt', i + 1, 'failed:', e.message); await new Promise(r => setTimeout(r, 1500)); }
     }
+    if (cancelled) { clearInterval(prog); prog = null; set({ status: 'available', progress: 0, bytes: 0, speed: 0, eta: 0 }); log('download cancelled'); return; }
     if (!ok) throw err || new Error('download failed');
     clearInterval(prog); prog = null;
     if (state.size && fs.statSync(file).size !== state.size) throw new Error('download incomplete');
@@ -93,8 +100,8 @@ async function download() {
     await sh('xattr', ['-cr', staged]).catch(() => {});
     set({ staged, status: 'ready' }); log('staged', state.latest);
     showCardIfAllowed(false);
-    try { new Notification({ title: 'Koi update ready', body: `${state.latest} is downloaded. Restart to switch.` }).show(); } catch {}
-  } catch (e) { clearInterval(prog); set({ status: 'error', error: e.message }); log('download failed:', e.message); try { await sh('hdiutil', ['detach', '-quiet', mnt]); } catch {} }
+    try { new Notification({ title: `Koi ${String(state.latest).replace(/^v/, '')} is ready`, body: 'Downloaded and checked. Restart Koi from the menu bar to switch, it takes about 3 seconds.' }).show(); } catch {}
+  } catch (e) { clearInterval(prog); if (cancelled) { set({ status: 'available', progress: 0 }); return; } set({ status: 'error', error: e.message }); log('download failed:', e.message); try { await sh('hdiutil', ['detach', '-quiet', mnt]); } catch {} }
 }
 
 function swapScript(o) {
@@ -126,17 +133,20 @@ async function install() {
   fs.writeFileSync(script, swapScript({ logf: path.join(C.app.getPath('logs'), 'update.log'), cur: C.app.getVersion(), next: sv, staged: state.staged, target, pid: process.pid, marker: path.join(C.app.getPath('userData'), 'just-updated') }));
   fs.chmodSync(script, 0o755);
   set({ status: 'installing' }); log('installing', sv);
-  const child = spawn('/bin/bash', [script], { detached: true, stdio: 'ignore' }); child.unref();
+  if (C.settings().updateCard) showCard();
   try { C.beforeQuit && C.beforeQuit(); } catch {}
-  setTimeout(() => C.app.exit(0), 200);
-  setTimeout(() => { try { process.kill(process.pid, 'SIGKILL'); } catch {} }, 2500);
+  // the swap script waits for this exact pid to exit, so the card gets a moment to show "Restarting" first
+  const child = spawn('/bin/bash', [script], { detached: true, stdio: 'ignore' }); child.unref();
+  setTimeout(() => C.app.exit(0), 650);
+  setTimeout(() => { try { process.kill(process.pid, 'SIGKILL'); } catch {} }, 3000);
   return snapshot();
 }
 
 async function poll() {
   if (polling || ['downloading', 'unpacking', 'installing', 'checking'].includes(state.status)) return; polling = true;
   const tag = await latestTag().finally(() => (polling = false));
-  if (!tag) { misses++; if (misses === 10) { clearInterval(timer); timer = setInterval(poll, 300000); log('backing off to 5 min'); } return; } misses = 0;
+  if (!tag) { misses++; if (misses === 3) { clearInterval(timer); timer = setInterval(poll, 30 * 60000); log('offline: backing off to 30 min'); } return; }
+  if (misses >= 3) { clearInterval(timer); timer = setInterval(poll, POLL); } misses = 0;
   if (tag === lastTag) return; lastTag = tag;
   if (newer(tag, C.app.getVersion())) check(false); else if (state.status === 'idle') set({ status: 'uptodate', latest: tag });
 }
@@ -145,16 +155,19 @@ const actions = {
   check: () => check(true), install: () => install(), download: () => download(), state: () => snapshot(),
   later: () => { snoozedUntil = Date.now() + 2 * 3600000; hideCard(); },
   skip: () => { skipVersion = state.latest; C.saveSkip && C.saveSkip(skipVersion); C.setBadge(false); hideCard(); },
-  cancel: () => { try { dlProc?.kill('SIGTERM'); } catch {} set({ status: 'available', progress: 0 }); },
+  cancel: () => { cancelled = true; try { dlProc?.kill('SIGTERM'); } catch {} set({ status: 'available', progress: 0, bytes: 0, speed: 0, eta: 0 }); },
+  quiet: () => { if (!['downloading', 'unpacking', 'installing', 'checking'].includes(state.status)) poll(); return snapshot(); },
   close: () => hideCard(),
 };
 function start(ctx) {
   C = ctx; skipVersion = ctx.settings().skipped || null;
-  try { const f = path.join(ctx.app.getPath('userData'), 'just-updated'); if (fs.existsSync(f)) { fs.rmSync(f); log('updated to', ctx.app.getVersion()); setTimeout(() => { try { new Notification({ title: `Updated to Koi ${ctx.app.getVersion()}`, body: 'Fresh fan, same springs.' }).show(); } catch {} }, 1500); } } catch {}
+  try { const f = path.join(ctx.app.getPath('userData'), 'just-updated'); if (fs.existsSync(f)) { fs.rmSync(f); log('updated to', ctx.app.getVersion()); setTimeout(() => { try { new Notification({ title: `You are on Koi ${ctx.app.getVersion()}`, body: 'The update went through. Your hotkeys, settings and permissions came along.' }).show(); } catch {} }, 1500); } } catch {}
   const staged = path.join(updDir(), 'Koi.app');
   if (fs.existsSync(staged)) { const sv = stagedVersion(staged); if (sv && newer(sv, ctx.app.getVersion())) { state.staged = staged; state.status = 'ready'; state.latest = 'v' + sv; ctx.setBadge(true); } else clearStaged(); }
   setTimeout(() => check(false), 5000);
-  timer = setInterval(poll, 30000);
+  timer = setInterval(poll, POLL);
   try { powerMonitor.on('resume', () => setTimeout(() => check(false), 8000)); } catch {}
 }
-module.exports = { start, actions, snapshot: () => (C ? snapshot() : state), _swapScript: swapScript, _newer: newer };
+// tests only: paint the card in a given state without touching GitHub
+function _preview(s) { Object.assign(state, s); showCard(); push(); return popup; }
+module.exports = { start, actions, snapshot: () => (C ? snapshot() : state), _swapScript: swapScript, _newer: newer, _preview };

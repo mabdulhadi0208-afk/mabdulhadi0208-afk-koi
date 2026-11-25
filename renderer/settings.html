@@ -1,100 +1,128 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Koi — Hotkeys</title>
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Koi Hotkeys</title>
+<link rel="stylesheet" href="koi.css">
 <style>
-:root{--bg:#eef1fb;--card:rgba(255,255,255,.72);--tx:#1b1d2a;--mut:rgba(27,29,42,.55);--ln:rgba(0,0,0,.08);--ac:#0a84ff;--chip:rgba(0,0,0,.06)}
-@media(prefers-color-scheme:dark){:root{--bg:#15172c;--card:rgba(255,255,255,.07);--tx:#f1f2ff;--mut:rgba(230,232,255,.55);--ln:rgba(255,255,255,.1);--chip:rgba(255,255,255,.1)}}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;background:var(--bg);color:var(--tx);-webkit-font-smoothing:antialiased;user-select:none;padding:46px 26px 26px;overflow-y:auto;height:100vh}
-.drag{position:fixed;left:0;right:0;top:0;height:36px;-webkit-app-region:drag}
-h1{font-size:26px;letter-spacing:-.02em;margin-bottom:4px}.sub{color:var(--mut);font-size:13.5px;margin-bottom:22px}
-.card{background:var(--card);border:1px solid var(--ln);border-radius:16px;padding:16px 18px;margin-bottom:16px;backdrop-filter:blur(20px)}
-.card h2{font-size:14px;font-weight:650;margin-bottom:2px}.card p{font-size:12.5px;color:var(--mut);margin-bottom:12px;line-height:1.45}
-.row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--ln)}.row:first-of-type{border-top:0}
-.row .nm{flex:1;font-size:14px;font-weight:550;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rec{all:unset;cursor:pointer;min-width:150px;text-align:center;padding:8px 14px;border-radius:11px;background:var(--chip);font:600 14px ui-monospace,Menlo,monospace;transition:transform .35s cubic-bezier(.3,2,.5,1),background .2s,box-shadow .2s}
-.rec:hover{transform:scale(1.04)}
-.rec.on{background:var(--ac);color:#fff;box-shadow:0 0 0 5px rgba(10,132,255,.25);animation:pl 1s ease-in-out infinite}
-@keyframes pl{50%{box-shadow:0 0 0 9px rgba(10,132,255,.12)}}
-.rec.err{background:#ff453a;color:#fff;animation:sh .4s}
-@keyframes sh{20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
-.btn{all:unset;cursor:pointer;padding:7px 13px;border-radius:10px;background:var(--chip);font-size:13px;font-weight:600;transition:transform .35s cubic-bezier(.3,2,.5,1)}
-.btn:hover{transform:scale(1.06)}.btn.pr{background:var(--ac);color:#fff}
-.x{all:unset;cursor:pointer;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;color:var(--mut);font-size:16px}.x:hover{background:var(--chip);color:var(--tx)}
-select{font:500 13.5px -apple-system,system-ui;padding:7px 10px;border-radius:10px;border:1px solid var(--ln);background:var(--chip);color:var(--tx);max-width:190px}
-.msg{font-size:12px;color:#ff453a;min-height:16px;margin-top:8px}
-.empty{font-size:13px;color:var(--mut);padding:6px 0 10px}
-.foot{text-align:center;font-size:11.5px;color:var(--mut);margin-top:6px}
-
-@keyframes jin{0%{opacity:0;transform:translateY(18px) scale(.9)}60%{opacity:1;transform:translateY(-3px) scale(1.02)}100%{opacity:1;transform:none}}
-@keyframes wob{0%,100%{transform:scale(1)}25%{transform:scale(1.06,.94)}50%{transform:scale(.96,1.04)}75%{transform:scale(1.02,.98)}}
-@keyframes shk{0%,100%{translate:0}20%{translate:-7px}40%{translate:6px}60%{translate:-4px}80%{translate:2px}}
-h1,.sub,.card,.foot{animation:jin .8s cubic-bezier(.3,1.9,.5,1) both}.sub{animation-delay:.05s}.card{animation-delay:.12s}.foot{animation-delay:.2s}
-.row{animation:jin .7s cubic-bezier(.3,1.9,.5,1) both;transition:transform .45s cubic-bezier(.3,1.9,.5,1),background .2s}.row:hover{transform:scale(1.015)}
-.row:nth-child(2){animation-delay:.06s}.row:nth-child(3){animation-delay:.12s}.row:nth-child(4){animation-delay:.18s}.row:nth-child(n+5){animation-delay:.24s}
-button{transition:transform .45s cubic-bezier(.3,1.9,.5,1),background .2s,box-shadow .3s}button:hover{transform:scale(1.06)}button:active{transform:scale(.9,.94);transition-duration:.12s}
-.rec.on{animation:wob 1.1s ease-in-out infinite}.rec.err{animation:shk .45s ease}
+html,body{height:100%;background:var(--bg)}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.14);border-radius:8px}.lt ::-webkit-scrollbar-thumb{background:rgba(90,30,90,.16)}
+body{padding:44px 24px 26px;overflow-y:auto;background:radial-gradient(70% 40% at 0% 0%,rgba(255,46,136,.16),transparent 70%),radial-gradient(70% 40% at 100% 100%,rgba(122,60,255,.16),transparent 70%),var(--bg)}
+.drag{position:fixed;left:0;right:0;top:0;height:38px;-webkit-app-region:drag;z-index:5}
+.in{animation:heroIn .75s cubic-bezier(.3,1.45,.5,1) both}
+#top{display:flex;align-items:center;gap:18px;min-height:150px;padding:26px 24px;border-radius:32px;--hc:#ff2e88;--hc2:#7a3cff;margin-bottom:16px}
+#top .title{font-size:60px}
+#top .tx{display:flex;flex-direction:column;gap:7px}
+.tile svg:not([fill]){fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.card{border-radius:30px;padding:22px 20px 18px;margin-bottom:14px}
+.card .ch{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.card .ch .tile{width:50px;height:50px;border-radius:16px}
+.card .ch .tile svg{width:26px;height:26px}
+.card h2{font:900 28px/1 var(--head);letter-spacing:-.05em}
+.card .ch p{font-size:12.5px;color:rgba(255,255,255,.76);margin-top:5px;line-height:1.35}
+#c1{--hc:#ff2e88;--hc2:#b42cff;animation-delay:.06s}
+#c2{--hc:#7a3cff;--hc2:#16c6ff;animation-delay:.12s}
+#perm{--hc:#ff8a1f;--hc2:#ff2e88;display:none;align-items:center;gap:14px;padding:16px 18px;animation-delay:.03s}
+#perm.show{display:flex}
+#perm b{font:900 17px/1.1 var(--head);letter-spacing:-.03em;display:block}#perm span{font-size:12.5px;color:rgba(255,255,255,.8);line-height:1.35}
+.row{display:flex;align-items:center;gap:12px;padding:10px 10px 10px 12px;border-radius:20px;background:rgba(0,0,20,.22);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),inset 0 1px 0 rgba(255,255,255,.1);margin-top:8px;color:#fff}
+.row .nm{flex:1;font:800 15px/1.1 var(--head);letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .ai{flex:none;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;overflow:hidden;font:900 16px/1 var(--head);color:#fff;background:var(--koi);box-shadow:inset 0 1px 0 rgba(255,255,255,.4)}
+.row .ai img{width:100%;height:100%;object-fit:contain}
+.row .ai.im{background:none;box-shadow:none}
+.rec{all:unset;cursor:pointer;min-width:150px;min-height:44px;display:flex;align-items:center;justify-content:center;gap:5px;padding:4px 12px;border-radius:15px;background:rgba(0,0,20,.38);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 2px 6px rgba(0,0,0,.35);font:800 13px/1 var(--head);color:#fff;will-change:transform}
+.rec .ph{opacity:.8}
+.rec.on{background:radial-gradient(90% 140% at 30% -20%,rgba(255,255,255,.4),transparent 55%),var(--koi);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 0 5px rgba(255,46,136,.25),0 12px 24px -10px var(--pink)}
+.rec.err{background:linear-gradient(135deg,#ff5a5a,#e0115f)}
+.rec .warn{color:var(--amber);font-weight:900}
+.x{all:unset;cursor:pointer;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.x svg{width:14px;height:14px;fill:none;stroke:#fff;stroke-width:2.4;stroke-linecap:round}
+select{font:700 13.5px/1 var(--head);padding:10px 12px;border-radius:14px;border:0;background:rgba(0,0,20,.38);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);color:#fff;max-width:200px;outline:none}
+.msg{font:700 12.5px/1.3 var(--head);color:#ffe0ea;min-height:16px;margin-top:10px}
+.empty{font:700 13.5px/1.4 var(--head);color:rgba(255,255,255,.72);padding:14px;border-radius:18px;background:rgba(0,0,20,.18);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);text-align:center}
+.acts{display:flex;gap:8px;margin-top:14px}
+.foot{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:4px;animation:heroIn .75s cubic-bezier(.3,1.45,.5,1) .18s both}
+.foot div{padding:14px;border-radius:20px;font-size:12px;line-height:1.4;color:var(--mut)}
+.foot b{display:block;font:850 13.5px/1.1 var(--head);color:var(--tx);margin:8px 0 4px;letter-spacing:-.02em}
+.foot .ico{width:30px;height:30px;border-radius:10px}
+.foot .ico svg{width:16px;height:16px}
+@keyframes shk{20%{translate:-7px}40%{translate:6px}60%{translate:-4px}80%{translate:2px}}
+.rec.err{animation:shk .45s ease}
 </style></head><body><div class="drag"></div>
-<h1>Hotkeys</h1><div class="sub">Pick your own shortcuts. Click a box, then press the keys you want.</div>
-<div class="card"><h2>Open Koi</h2><p>Brings up the fan around your cursor.</p>
-<div class="row"><div class="nm">Open the fan</div><button class="rec" id="main">…</button><button class="btn" id="reset">Reset</button></div><div class="msg" id="m1"></div></div>
-<div class="card"><h2>App hotkeys</h2><p>Jump straight to an app from anywhere — for example ⌥S for Safari.</p>
-<div id="list"></div><div style="margin-top:10px"><button class="btn pr" id="add">+ Add app hotkey</button></div><div class="msg" id="m2"></div></div>
-<div class="foot">Use a modifier + key, an F-key, or just two modifiers (e.g. hold ⌘⌥ — it fires the instant both are down — needs Accessibility permission: System Settings → Privacy &amp; Security → Accessibility → Koi on). Esc cancels.</div>
+<div class="hero in" id="top"><div class="tile"><svg viewBox="0 0 24 24"><path d="M9 6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3z"/></svg></div><div class="tx"><div class="eye">Koi 2.0</div><div class="title">Hotkeys</div><div class="sub">Pick your own shortcuts. Click a box, then press the keys.</div></div></div>
+<div class="hero in" id="perm"><div class="tile" style="width:46px;height:46px;border-radius:15px"><svg viewBox="0 0 24 24" style="width:24px;height:24px"><path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/><path d="M12 8v5M12 16v.1"/></svg></div><div style="flex:1"><b id="permT">Koi needs Accessibility</b><span id="permS">Modifier-only hotkeys like Command + Option need it. Koi only sees which keys go down, never what you type.</span></div><button class="btn onhero" id="permGo">Open Settings</button></div>
+<div class="hero card in" id="c1"><div class="ch"><div class="tile"><svg viewBox="0 0 120 120" id="fanmk"></svg></div><div><h2>Open the fan</h2><p>Brings up the fan around your cursor, from anywhere.</p></div></div>
+<div class="row"><div class="nm">Summon Koi</div><button class="rec" id="main">...</button><button class="btn onhero" id="reset">Reset</button></div><div class="msg" id="m1"></div></div>
+<div class="hero card in" id="c2"><div class="ch"><div class="tile"><svg viewBox="0 0 24 24"><path d="M5 12l4 4 10-10"/></svg></div><div><h2>App hotkeys</h2><p>Jump straight to an app from anywhere, like Option S for Safari.</p></div></div>
+<div id="list"></div><div class="acts"><button class="btn" id="add">Add an app hotkey</button></div><div class="msg" id="m2"></div></div>
+<div class="foot"><div class="slab"><div class="ico" style="--c:#ff2e88"><svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/></svg></div><b>Key combos</b>A modifier plus a key, or an F-key on its own.</div><div class="slab"><div class="ico" style="--c:#7a3cff"><svg viewBox="0 0 24 24"><path d="M9 6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3z"/></svg></div><b>Just modifiers</b>Hold two, like Command and Option: it fires the instant both are down.</div><div class="slab"><div class="ico" style="--c:#16c6ff"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></div><b>Changed your mind</b>Esc cancels a recording. Nothing is saved until it works.</div></div>
+<script src="spring.js"></script>
 <script>
 const api=window.koiAPI;let st={main:'',hk:[],apps:[]},rec=null;
+const qs=new URLSearchParams(location.search);if(qs.get('theme')==='light')document.documentElement.classList.add('lt');
+['top','perm','c1','c2'].forEach(id=>KoiHero(document.getElementById(id)));
+document.getElementById('fanmk').outerHTML=KoiMark(28,false,true);
 const SYM={Command:'⌘',CommandOrControl:'⌘',Control:'⌃',Alt:'⌥',Shift:'⇧'};
-const pretty=a=>!a?'Not set':a.split('+').map(p=>SYM[p]||(p==='Space'?'Space':p==='Return'?'↩':p)).join(' ');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const keys=a=>!a?[]:a.split('+').map(p=>SYM[p]||(p==='Space'?'Space':p==='Return'?'↩︎':p));
+const caps=a=>{const k=keys(a);return k.length?k.map(x=>`<kbd>${esc(x)}</kbd>`).join(''):'<span class="ph">Not set</span>'};
 const KEYS={Minus:'-',Equal:'=',Comma:',',Period:'.',Slash:'/',Semicolon:';',Quote:"'",Backquote:'`',BracketLeft:'[',BracketRight:']',Backslash:'\\',Space:'Space',Enter:'Return',Tab:'Tab',Backspace:'Backspace',ArrowUp:'Up',ArrowDown:'Down',ArrowLeft:'Left',ArrowRight:'Right'};
 function toAccel(e){
  const c=e.code;let k=null;
  if(/^Key[A-Z]$/.test(c))k=c[3];else if(/^Digit\d$/.test(c))k=c[5];else if(/^F\d{1,2}$/.test(c))k=c;else if(KEYS[c])k=KEYS[c];
  if(!k)return null;
  const m=[];if(e.metaKey)m.push('Command');if(e.ctrlKey)m.push('Control');if(e.altKey)m.push('Alt');if(e.shiftKey)m.push('Shift');
- if(!m.length&&!/^F\d{1,2}$/.test(k))return {err:'Add a modifier key (⌘ ⌥ ⌃ ⇧)'};
+ if(!m.length&&!/^F\d{1,2}$/.test(k))return {err:'Add a modifier'};
  return {acc:m.concat(k).join('+')};
 }
-function render(){
- $('main').textContent=pretty(st.main)+(st.status&&!st.status.main?'  (!)':'');
- const L=$('list');L.innerHTML='';
- if(!st.hk.length){L.innerHTML='<div class="empty">No app hotkeys yet.</div>'}
- st.hk.forEach((h,i)=>{const r=document.createElement('div');r.className='row';
-  r.innerHTML=`<div class="nm">${h.name}</div><button class="rec" data-i="${i}" title="${st.status&&st.status.hk[i]===false?'Not active — another app owns it, or Koi needs Accessibility permission':''}">${pretty(h.acc)}${st.status&&st.status.hk[i]===false?' (!)':''}</button><button class="x" data-x="${i}" title="Remove">×</button>`;L.appendChild(r)});
-}
 const $=id=>document.getElementById(id);
+const appTile=h=>h.icon?`<div class="ai im"><img src="${esc(h.icon)}" alt=""></div>`:`<div class="ai">${esc((h.name||'?')[0].toUpperCase())}</div>`;
+function render(){
+ $('main').innerHTML=caps(st.main)+(st.status&&!st.status.main?' <span class="warn">!</span>':'');
+ const L=$('list');L.innerHTML='';
+ if(!st.hk.length){L.innerHTML='<div class="empty">No app hotkeys yet. Add one and that app is a keystroke away.</div>'}
+ st.hk.forEach((h,i)=>{const r=document.createElement('div');r.className='row';const bad=st.status&&st.status.hk[i]===false;
+  r.innerHTML=`${appTile(h)}<div class="nm">${esc(h.name)}</div><button class="rec" data-i="${i}" title="${bad?'Not active: another app owns it, or Koi needs Accessibility':''}">${caps(h.acc)}${bad?' <span class="warn">!</span>':''}</button><button class="x" data-x="${i}" title="Remove"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`;L.appendChild(r)});
+ const p=st.perm||{},show=p.needed&&(!p.trusted||(!p.hook&&p.err));
+ $('perm').classList.toggle('show',!!show);
+ if(show){$('permT').textContent=!p.trusted?'Koi needs Accessibility':'The key hook did not start';$('permS').textContent=!p.trusted?'Modifier-only hotkeys like Command + Option need it. Koi only sees which keys go down, never what you type.':'Koi keeps trying on its own. If it stays stuck, switch Koi off and on in Accessibility.'}
+ document.querySelectorAll('.btn,.rec,.x').forEach(b=>{if(!b._j){b._j=1;KoiSpring.jelly(b,1.05)}});
+}
 async function refresh(){st=await api.s.get();render()}
 async function startRec(btn,done){
- if(rec)stopRec();
- await api.s.pause();btn.classList.add('on');btn.dataset.old=btn.textContent;btn.textContent='Press keys…';rec={btn,done};
+ if(rec)await stopRec();
+ await api.s.pause();btn.classList.add('on');btn.dataset.old=btn.innerHTML;btn.innerHTML='<span class="ph">Press keys</span>';rec={btn,done};
 }
-async function stopRec(){if(!rec)return;rec.btn.classList.remove('on','err');if(rec.btn.dataset.old)rec.btn.textContent=rec.btn.dataset.old;rec=null;await api.s.resume();render()}
+async function stopRec(){if(!rec)return;rec.btn.classList.remove('on','err');if(rec.btn.dataset.old)rec.btn.innerHTML=rec.btn.dataset.old;rec=null;await api.s.resume();render()}
+const modsHTML=e=>[e.metaKey&&'⌘',e.ctrlKey&&'⌃',e.altKey&&'⌥',e.shiftKey&&'⇧'].filter(Boolean).map(k=>`<kbd>${k}</kbd>`).join('');
+function fail(b,res,fallback){b.classList.add('err');b.innerHTML='<span class="ph">Taken</span>';setTimeout(()=>{b.classList.remove('err');render()},1100);const m=$(res.where||'m1');m.textContent=res.msg||fallback;setTimeout(()=>m.textContent='',3500)}
 let peakM=null,sawKey=false;
-addEventListener('keyup',async e=>{if(rec&&['Meta','Control','Alt','Shift'].includes(e.key)&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&!e.shiftKey&&peakM&&peakM.length>=2&&!sawKey){const acc=peakM.join('+'),done=rec.done,b=rec.btn;peakM=null;b.classList.remove('on');rec=null;await api.s.resume();const res=await done(acc);if(!res.ok){b.classList.add('err');b.textContent='Taken';setTimeout(()=>{b.classList.remove('err');render()},1100);const m=$(res.where||'m1');m.textContent=res.msg||'Not available';setTimeout(()=>m.textContent='',3500)}else await refresh();return}
-if(rec&&['Meta','Control','Alt','Shift'].includes(e.key)){const m=(e.metaKey?'⌘ ':'')+(e.ctrlKey?'⌃ ':'')+(e.altKey?'⌥ ':'')+(e.shiftKey?'⇧ ':'');rec.btn.textContent=m?m+'…':'Press keys…'}});
+addEventListener('keyup',async e=>{
+ if(rec&&['Meta','Control','Alt','Shift'].includes(e.key)&&!e.metaKey&&!e.ctrlKey&&!e.altKey&&!e.shiftKey&&peakM&&peakM.length>=2&&!sawKey){const acc=peakM.join('+'),done=rec.done,b=rec.btn;peakM=null;b.classList.remove('on');rec=null;await api.s.resume();const res=await done(acc);if(!res.ok)fail(b,res,'Not available');else await refresh();return}
+ if(rec&&['Meta','Control','Alt','Shift'].includes(e.key)){const m=modsHTML(e);rec.btn.innerHTML=m||'<span class="ph">Press keys</span>'}});
 addEventListener('keydown',async e=>{
  if(!rec)return;e.preventDefault();
- if(['Meta','Control','Alt','Shift'].includes(e.key)){const pm=[];if(e.metaKey)pm.push('Command');if(e.ctrlKey)pm.push('Control');if(e.altKey)pm.push('Alt');if(e.shiftKey)pm.push('Shift');if(!peakM||pm.length>=peakM.length){peakM=pm;sawKey=false}const m=(e.metaKey?'⌘ ':'')+(e.ctrlKey?'⌃ ':'')+(e.altKey?'⌥ ':'')+(e.shiftKey?'⇧ ':'');rec.btn.textContent=m?m+'…':'Press keys…';return}
+ if(['Meta','Control','Alt','Shift'].includes(e.key)){const pm=[];if(e.metaKey)pm.push('Command');if(e.ctrlKey)pm.push('Control');if(e.altKey)pm.push('Alt');if(e.shiftKey)pm.push('Shift');if(!peakM||pm.length>=peakM.length){peakM=pm;sawKey=false}rec.btn.innerHTML=modsHTML(e)||'<span class="ph">Press keys</span>';return}
  if(e.key==='Escape'){stopRec();return}
  sawKey=true;const r=toAccel(e);if(!r)return;
  const b=rec.btn,done=rec.done;
- if(r.err){b.classList.add('err');b.textContent=r.err;setTimeout(()=>{b.classList.remove('err');b.textContent='Press keys…'},900);return}
+ if(r.err){b.classList.add('err');b.innerHTML='<span class="ph">'+r.err+'</span>';setTimeout(()=>{b.classList.remove('err');b.innerHTML='<span class="ph">Press keys</span>'},900);return}
  b.classList.remove('on');rec=null;await api.s.resume();
  const res=await done(r.acc);
- if(!res.ok){b.classList.add('err');b.textContent='Taken';setTimeout(()=>{b.classList.remove('err');render()},1100);const m=$(res.where||'m1');m.textContent=res.msg||'That shortcut is already used by something else.';setTimeout(()=>m.textContent='',3500)}
- else{await refresh()}
+ if(!res.ok)fail(b,res,'Something else already uses that shortcut.');else await refresh();
 });
-$('main').onclick=e=>startRec(e.target,acc=>api.s.setMain(acc));
+$('main').onclick=()=>startRec($('main'),acc=>api.s.setMain(acc));
 $('reset').onclick=async()=>{await api.s.setMain('Alt+Space');refresh()};
+$('permGo').onclick=()=>{api.s.openAccess();setTimeout(refresh,4000)};
 $('add').onclick=async()=>{
  if(!st.apps.length)return;
  const row=document.createElement('div');row.className='row';
- row.innerHTML='<select id="pick">'+st.apps.map((a,i)=>`<option value="${i}">${a.name}</option>`).join('')+'</select><div class="nm"></div><button class="rec" id="newrec">Record…</button><button class="x" id="cancel">×</button>';
- const L=$('list');const em=L.querySelector('.empty');if(em)em.remove();L.appendChild(row);row.scrollIntoView({behavior:'smooth'});
+ row.innerHTML='<select id="pick">'+st.apps.map((a,i)=>`<option value="${i}">${esc(a.name)}</option>`).join('')+'</select><div class="nm"></div><button class="rec" id="newrec">Record</button><button class="x" id="cancel"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>';
+ const L=$('list');const em=L.querySelector('.empty');if(em)em.remove();L.appendChild(row);row.scrollIntoView({behavior:'smooth',block:'nearest'});
  $('cancel').onclick=()=>{stopRec();render()};
- $('newrec').onclick=ev=>startRec(ev.target,acc=>{const a=st.apps[+$('pick').value];return api.s.addHotkey(acc,a.name,a.path)});
+ $('newrec').onclick=()=>startRec($('newrec'),acc=>{const a=st.apps[+$('pick').value];return api.s.addHotkey(acc,a.name,a.path)});
  $('newrec').click();
 };
 $('list').onclick=async e=>{
  const x=e.target.closest('[data-x]');if(x){await api.s.removeHotkey(+x.dataset.x);refresh();return}
  const b=e.target.closest('.rec[data-i]');if(b){const i=+b.dataset.i;startRec(b,acc=>api.s.updateHotkey(i,acc))}
 };
+addEventListener('focus',()=>{if(!rec)refresh()});
 refresh();
 </script></body></html>

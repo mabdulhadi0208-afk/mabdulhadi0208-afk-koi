@@ -1,4 +1,7 @@
-name: Build Koi DMG
+name: Build and release Koi
+# A release is cut when package.json on main has a version that is not tagged yet (bump "version" to release).
+# The updater inside Koi reads https://github.com/<repo>/releases/latest, then downloads Koi-mac-<arch>.zip
+# (falling back to the .dmg), so every release must carry both zips and both DMGs.
 on:
   push:
     branches: [main]
@@ -10,38 +13,61 @@ jobs:
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Version from package.json
+        id: v
+        shell: bash
+        run: |
+          V=$(node -p "require('./package.json').version")
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          if git rev-parse -q --verify "refs/tags/v$V" >/dev/null; then echo "release=false" >> "$GITHUB_OUTPUT"; echo "v$V is already released; bump package.json to release"; else echo "release=true" >> "$GITHUB_OUTPUT"; fi
       - uses: actions/setup-node@v4
+        if: steps.v.outputs.release == 'true'
         with: { node-version: 20 }
       - run: npm install
-      - run: sed -i.bak "s/__KOI_VERSION__/1.0.${{ github.run_number }}/" renderer/app.html && rm renderer/app.html.bak
-      - name: Build DMGs (retry on flaky hdiutil)
+        if: steps.v.outputs.release == 'true'
+      - name: Key hook that only listens to keys (falls back to the stock build if it cannot compile)
+        if: steps.v.outputs.release == 'true'
+        run: node build/patch-uiohook.js
+      - run: sed -i.bak "s/__KOI_VERSION__/${{ steps.v.outputs.version }}/" renderer/app.html && rm renderer/app.html.bak
+        if: steps.v.outputs.release == 'true'
+      - name: Build DMGs and zips (retry on flaky hdiutil)
+        if: steps.v.outputs.release == 'true'
         shell: bash
         run: |
           for attempt in 1 2 3; do
             echo "=== attempt $attempt"
             for v in /Volumes/Koi*; do [ -e "$v" ] && hdiutil detach "$v" -force || true; done
             rm -rf dist
-            if npx electron-builder --mac --arm64 --x64 --publish never -c.extraMetadata.version=1.0.${{ github.run_number }} 2>&1 | tee build.log; [ "${PIPESTATUS[0]}" = "0" ]; then exit 0; fi
+            if npx electron-builder --mac --arm64 --x64 --publish never 2>&1 | tee build.log; [ "${PIPESTATUS[0]}" = "0" ]; then exit 0; fi
             msg=$(tail -25 build.log | tr -d '\r' | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
             echo "::warning title=attempt $attempt failed::$msg"
             sleep 8
           done
           exit 1
-      - name: Verify signatures
+      - name: Verify signatures, versions and the files the updater needs
+        if: steps.v.outputs.release == 'true'
         shell: bash
         run: |
           ls -la dist
+          V=${{ steps.v.outputs.version }}
+          for f in Koi-mac-arm64.zip Koi-mac-x64.zip Koi-mac-arm64.dmg Koi-mac-x64.dmg; do [ -s "dist/$f" ] || { echo "::error::missing dist/$f"; exit 1; }; done
           for a in dist/mac-arm64/Koi.app dist/mac/Koi.app; do
-            if [ -d "$a" ]; then echo "== $a"; codesign -dv "$a" 2>&1 | head -8; codesign --verify --deep --strict "$a" || { echo "::error::signature invalid on $a"; exit 1; }; fi
+            if [ -d "$a" ]; then echo "== $a"; codesign -dv "$a" 2>&1 | head -8; codesign --verify --deep --strict "$a" || { echo "::error::signature invalid on $a"; exit 1; }
+              got=$(defaults read "$PWD/$a/Contents/Info.plist" CFBundleShortVersionString); [ "$got" = "$V" ] || { echo "::error::$a is $got, expected $V"; exit 1; }; fi
           done
+          # the zip must unpack to Koi.app with the right version, exactly like the updater does it
+          rm -rf /tmp/kz && mkdir /tmp/kz && ditto -x -k dist/Koi-mac-arm64.zip /tmp/kz && got=$(defaults read /tmp/kz/Koi.app/Contents/Info.plist CFBundleShortVersionString) && [ "$got" = "$V" ] || { echo "::error::zip does not unpack to Koi.app $V"; exit 1; }
       - uses: softprops/action-gh-release@v2
+        if: steps.v.outputs.release == 'true'
         with:
-          tag_name: v1.0.${{ github.run_number }}
-          name: Koi 1.0.${{ github.run_number }}
+          tag_name: v${{ steps.v.outputs.version }}
+          name: Koi ${{ steps.v.outputs.version }}
+          body_path: RELEASE_NOTES.md
           files: |
             dist/*.dmg
             dist/*.zip
-          generate_release_notes: true
           make_latest: true
       - uses: actions/upload-artifact@v4
+        if: steps.v.outputs.release == 'true'
         with: { name: koi-dmg, path: dist/*.dmg }
