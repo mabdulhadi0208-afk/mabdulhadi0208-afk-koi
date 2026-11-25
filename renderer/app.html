@@ -517,13 +517,12 @@ const later=(ms,f)=>setTimeout(()=>{if(!cancel)f()},ms);
 const POOLS='<div class="pools"><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i></div>';
 function gate(){S.film=true;F.style.display='block';bk.style.transition='none';bk.style.opacity=1;scene.innerHTML=POOLS+'<div class="brand"><div class="mk">'+logo(150)+'</div><p style="animation:none;opacity:1;font-size:18px;margin-top:4px">The Koi 2.1 film</p><div class="btns" style="animation:none;opacity:1"><button class="pr" id="g1">Play with sound</button><button id="g0">Play without sound</button></div></div>';$('#g1').onclick=()=>playFilm(true);$('#g0').onclick=()=>playFilm(false)}
 
-const KV=(()=>{const q=new URLSearchParams(location.search).get('v');if(q)return q;const v='__KOI_VERSION__';return v.indexOf('__')===0?'2.1.0':v})();
+const KV=(()=>{const q=new URLSearchParams(location.search).get('v');if(q)return q;const v='__KOI_VERSION__';return v.indexOf('__')===0?'2.1.1':v})();
 // What's new: only this version's changes
 const WHATS_NEW=[
- ['01','Cmd+Tab, with every window','Hold Command and press Tab: a glass sheet shows every open window across your apps, with a live preview, its app icon and its title. Let go to jump to that exact window.','#e0559a'],
- ['02','A rim that glides','Tab, Shift Tab, the arrow keys, hover and the scroll wheel all move one glowing rim from window to window on a soft spring. Q quits the app, W closes the window, Esc cancels.','#5b8cff'],
- ['03','Most recent first','The first Tab takes you to the window you used last, just like Windows. Minimized windows come back when you pick them.','#13c1cd'],
- ['04','Yours to tune','In Hotkeys, Window switcher: replace Cmd+Tab or keep Apple\u2019s, show all apps or just this Space, and include minimized windows. If a permission is missing, Koi shows exactly what to do, and Apple\u2019s Cmd+Tab keeps working meanwhile.','#ffb547']];
+ ['01','A quick Cmd+Tab switches at once','Tap Tab once while holding Command, let go, and you are back in the app you used before. No panel, no picking, no flash.','#e0559a'],
+ ['02','The previous app comes first','The first Tab always lands on the app you used last, even when the app you are in has several windows open.','#5b8cff'],
+ ['03','The panel waits for a hold','Keep holding Command and the switcher fades in, with every window and its live preview. Fast taps and fast Tab Tab are never lost.','#13c1cd']];
 const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 const STEPS=15;
 function say(n,t,d){cap.classList.remove('in');void cap.offsetWidth;cap.style.opacity='';cap.querySelector('.n').textContent='STEP '+n+' OF '+STEPS;cap.querySelector('.cw').textContent=n;cap.querySelector('b').textContent=t;cap.querySelector('p').textContent=d;cap.classList.add('in');pg.style.transform=`scaleX(${parseInt(n,10)/STEPS})`;bell(784,.03,1.4);whoosh(.025)}
@@ -592,7 +591,7 @@ async function tutorial(){
  scene.innerHTML=MK('pop');await sleep(4200);
  say('09','Your hotkeys','Pick any combo, even just Command and Option held together. If macOS ever needs Accessibility again, Koi shows you exactly how.');
  scene.innerHTML=MK('hk');await sleep(4200);
- say('10','Every window, one Tab away','Hold Command and press Tab. Each Tab glides to the next window, and letting go jumps straight to it.');
+ say('10','Every window, one Tab away','Tap Command Tab to jump straight back to your last app. Keep holding and every window fans out: each Tab glides to the next, and letting go lands on it.');
  key('\u2318 Tab',3600);scene.innerHTML=MK('sw');await sleep(4800);
  say('11','Updates itself','Koi checks quietly, downloads, then swaps itself in with one click. Your settings come along.');
  scene.innerHTML=MK('up');await sleep(4200);

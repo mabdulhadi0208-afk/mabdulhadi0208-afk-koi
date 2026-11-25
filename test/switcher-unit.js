@@ -25,7 +25,7 @@ function rig(over = {}) {
   const r = { S, ui, kids: [], restores: 0, opened: 0, blocked: false, warmed: 0 };
   r.sw = new Switcher({
     spawn: over.spawn || (() => { const c = new FakeChild(); r.kids.push(c); return c; }), ui, settings: () => S,
-    restore: () => r.restores++, blocked: () => r.blocked, onOpen: () => r.opened++, warm: () => r.warmed++, backoff: [30, 30, 30, 30],
+    restore: () => r.restores++, blocked: () => r.blocked, onOpen: () => r.opened++, warm: () => r.warmed++, backoff: [30, 30, 30, 30], showDelay: over.showDelay !== undefined ? over.showDelay : 0,
     thumbFallback: over.thumbFallback, log: () => {}
   });
   r.child = () => r.kids[r.kids.length - 1];
@@ -84,6 +84,38 @@ function rig(over = {}) {
   ok(r.child().cmds('quit').pop().pid === 8 && r.ui.last.wins.map(w => w.wid).join() === '1,4', 'Q quits the app and drops all its windows');
   r.child().say({ ev: 'key', k: 'return' }); ok(!r.ui.visible && r.child().cmds('focus').length > 0, 'Return picks');
   r.open({ windows: [] }); ok(!r.ui.visible && r.child().cmds('active').pop().on === false, 'no windows: nothing opens and the helper is told');
+
+  // ---- 2.1.1: quick Cmd+Tab taps switch straight to the previous app, the panel only shows on a hold ----
+  // the current app has two windows in front: the first Tab must still go to the previous APP
+  const APPS3 = [W(1, { z: 0, pid: 10, app: 'Safari' }), W(2, { z: 1, pid: 10, app: 'Safari' }), W(3, { z: 2, pid: 20, app: 'Notes' }), W(4, { z: 3, pid: 30, app: 'Xcode' }), W(5, { z: 4, pid: 40, app: 'Music' })];
+  o = orderWindows(APPS3); ok(o.map(w => w.wid).join() === '1,3,2,4,5', `the previous app's front window comes right after the current window (${o.map(w => w.wid)})`);
+  let q = rig({ showDelay: 120 }); q.sw.start(); q.ready();
+  q.open({ windows: APPS3 }); await sleep(30); q.child().say({ ev: 'commit', seq: q.seq });
+  f = q.child().cmds('focus').pop();
+  ok(f && f.wid === 3 && f.pid === 20, `quick tap (release after 30 ms) switches to the previous app (wid ${f && f.wid})`);
+  await sleep(150); ok(!q.ui.calls.some(c => c[0] === 'show'), 'quick tap: the panel never shows (no flash)');
+  ok(!q.sw.isOpen() && !q.child().cmds('thumbs').length, 'quick tap: nothing left open, no thumbnails taken');
+  q.open({ windows: APPS3 }); q.child().say({ ev: 'next', seq: q.seq }); await sleep(20); q.child().say({ ev: 'commit', seq: q.seq });
+  f = q.child().cmds('focus').pop(); ok(f.wid === 2 && !q.ui.calls.some(c => c[0] === 'show'), `tap, tap, release goes to the second one (wid ${f.wid}), still no panel`);
+  q.open({ windows: APPS3 }); await sleep(60); ok(!q.ui.visible, 'holding: no panel at 60 ms');
+  await sleep(100); ok(q.ui.visible && q.ui.sel === 1, 'holding Command past ~120 ms shows the panel, on the previous app');
+  q.child().say({ ev: 'commit', seq: q.seq }); f = q.child().cmds('focus').pop(); ok(!q.ui.visible && f.wid === 3, 'and releasing after the hold switches and hides it');
+  // the open spent 100 ms listing windows: the panel waits only the rest of the 120 ms
+  q.open({ windows: APPS3, age: 100 }); await sleep(40); ok(q.ui.visible, 'the show delay counts from the Tab press, not from when Koi heard it');
+  q.child().say({ ev: 'commit', seq: q.seq });
+  // release (and a second Tab) arriving BEFORE the open, i.e. while the open and its ack are still pending
+  const nShow = q.ui.calls.filter(c => c[0] === 'show').length, s2 = q.seq + 1;
+  q.child().say({ ev: 'commit', seq: s2 });
+  ok(!q.child().cmds('focus').some(c => c.seq) && q.child().cmds('ack').every(a => a.seq !== s2), 'a release before its open is held, not dropped');
+  q.child().say({ ev: 'open', seq: (q.seq = s2), shift: false, windows: APPS3 });
+  f = q.child().cmds('focus').pop(); ok(f.wid === 3 && q.child().cmds('ack').pop().seq === s2, `release while the open ack was pending: the open is acked and switches at once (wid ${f.wid})`);
+  await sleep(150); ok(q.ui.calls.filter(c => c[0] === 'show').length === nShow, 'and the panel never shows for it');
+  const s3 = q.seq + 1; q.child().say({ ev: 'next', seq: s3 }); q.child().say({ ev: 'commit', seq: s3 });
+  q.child().say({ ev: 'open', seq: (q.seq = s3), shift: false, windows: APPS3 });
+  f = q.child().cmds('focus').pop(); ok(f.wid === 2, `Tab, Tab, release all before the open landed: goes to the second one (wid ${f.wid})`);
+  q.open({ windows: APPS3 }); q.child().say({ ev: 'commit', seq: q.seq - 1 }); await sleep(10);
+  ok(q.sw.isOpen(), 'a late release from an older gesture does not end the current one');
+  q.child().say({ ev: 'key', k: 'esc', seq: q.seq }); q.sw.stop();
 
   // ---- the fan and the chord ----
   r.blocked = true; const shows = r.ui.calls.filter(c => c[0] === 'show').length; r.open();

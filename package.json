@@ -1,6 +1,6 @@
 {
   "name": "koi",
-  "version": "2.1.0",
+  "version": "2.1.1",
   "description": "Koi: a springy, fluid fan app switcher and Cmd+Tab window switcher for macOS",
   "main": "main.js",
   "author": "Koi",

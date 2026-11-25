@@ -118,6 +118,14 @@ app.whenReady().then(async () => {
   emit({ ev: 'key', k: 'esc' }); await sleep(300);
   setState({}); sw.send({ cmd: '_state' }); await sleep(100);
 
+  // ---- 7b. 2.1.1: a quick Cmd+Tab tap switches to the previous app at once, with no panel ----
+  { let vis = false; const onShow = () => { vis = true; }; win().on('show', onShow);
+    const nf = sent('focus').length; emit({ ev: 'open', shift: false }); emit({ ev: 'commit' });
+    await until(() => sent('focus').length > nf, 1000); await sleep(250); win().removeListener('show', onShow);
+    const f = sent('focus').pop();
+    ok(f && f.wid === sw.list[1].wid && !vis && !win().isVisible(), `quick Cmd+Tab tap: straight to the previous app (wid ${f && f.wid}), the panel never shows`);
+    emit({ ev: 'open', shift: false }); emit({ ev: 'next' }); emit({ ev: 'commit' }); await sleep(250);
+    ok(sent('focus').pop().wid === sw.list[2].wid && !win().isVisible(), 'tap, tap, release: the second one, no panel'); }
   // ---- 8. Cmd+Tab vs Command + Option, both orders ----
   T.setHotkeys('Command+Alt', []); await sleep(300);
   const fanShown = () => { const w = BrowserWindow.getAllWindows().find(w => /mode=overlay/.test(w.webContents.getURL())); return !!(w && w.isVisible()); };

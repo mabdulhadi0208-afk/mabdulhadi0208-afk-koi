@@ -9,14 +9,18 @@
 //
 // Rules:
 //  - The panel opens from the window list that arrives WITH the open event: no round trip before the first frame.
-//  - The first Tab selects the previous window (index 1), like Windows; Shift+Tab from closed selects the last one.
+//  - The first Tab selects the most recently used window of a DIFFERENT app (moved to index 1), so a quick Cmd+Tab
+//    tap-and-release lands on the app you used before, like macOS and Windows. Shift+Tab from closed selects the last.
+//  - The panel only appears if Command is still held SHOW_DELAY ms after the Tab press (like macOS): a quick tap
+//    switches instantly with no flash. A commit that arrives before the open (or before the panel showed) switches
+//    straight away without ever showing the panel.
 //  - Releasing Cmd focuses the selected window (the exact window; the helper un-minimizes it).
 //  - Never fires while Koi's fan is open, and tells the chord detector a real key went down, so Cmd+Tab followed by
 //    Option can never fire the Command + Option fan.
 //  - Nothing runs while closed: no timers, no polling. Thumbnails are cached briefly and refreshed on every open.
 const { pathToFileURL } = require('url');
 
-const THUMB_TTL = 5 * 60000, THUMB_MAX = 48, BACKOFF = [800, 2000, 5000, 15000];
+const SHOW_DELAY = 120, THUMB_TTL = 5 * 60000, THUMB_MAX = 48, BACKOFF = [800, 2000, 5000, 15000];
 const fileUrl = f => f ? pathToFileURL(f).href : '';
 
 // most recently used first: visible windows of this Space in z-order (macOS keeps that order as you use them),
@@ -26,7 +30,11 @@ function orderWindows(wins, opts = {}, mru = new Map()) {
   const keep = (wins || []).filter(w => w && w.wid && (withMin || !w.min) && (scope === 'all' || w.onscreen || w.min || w.hidden));
   const front = keep.filter(w => w.onscreen && !w.min && !w.hidden).sort((a, b) => a.z - b.z);
   const back = keep.filter(w => !(w.onscreen && !w.min && !w.hidden)).sort((a, b) => (mru.get(b.wid) || 0) - (mru.get(a.wid) || 0) || a.z - b.z);
-  return front.concat(back);
+  const list = front.concat(back);
+  // the previous app goes right after the current window: the first Tab, and a quick tap, land on it
+  const k = list.findIndex((w, i) => i > 0 && list[0] && w.pid !== list[0].pid);
+  if (k > 1) list.splice(1, 0, list.splice(k, 1)[0]);
+  return list;
 }
 
 class Switcher {
@@ -36,13 +44,13 @@ class Switcher {
     this.o = o; this.child = null; this.buf = ''; this.status = 'off'; this.tap = ''; this.perm = { ax: null, screen: null };
     this.open = false; this.list = []; this.sel = 0; this.cols = 1; this.mru = new Map(); this.thumbs = new Map();
     this.deaths = []; this.restartT = null; this.stopping = false; this.sent = []; this.reqN = 0; this.pending = new Map();
-    this.features = {}; this.opens = 0; this.lastEvAt = 0;
+    this.features = {}; this.opens = 0; this.lastEvAt = 0; this.shown = false; this.showT = null; this.seq = 0; this.early = null;
   }
   now() { return this.o.now ? this.o.now() : Date.now(); }
   log(...a) { if (this.o.log) this.o.log(...a); }
   cfg() { const s = this.o.settings() || {}; return { enabled: s.switcher !== false, replace: s.switchReplace !== false, scope: s.switchScope === 'space' ? 'space' : 'all', minimized: s.switchMinimized !== false }; }
   isOpen() { return this.open; }
-  state() { return { status: this.status, tap: this.tap, perm: { ...this.perm }, open: this.open, sel: this.sel, n: this.list.length, list: this.list.map(w => w.wid), deaths: this.deaths.length, running: !!this.child, features: this.features }; }
+  state() { return { status: this.status, tap: this.tap, perm: { ...this.perm }, open: this.open, shown: this.shown, sel: this.sel, n: this.list.length, list: this.list.map(w => w.wid), deaths: this.deaths.length, running: !!this.child, features: this.features }; }
   setStatus(s) { if (s === this.status) return; this.status = s; this.o.onState && this.o.onState(this.state()); }
 
   // ---- helper life ----
@@ -124,10 +132,10 @@ class Switcher {
       case 'perm': this.setPerm(m); return;
       case 'warm': this.o.warm && this.o.warm(); return;
       case 'open': return this.onOpen(m);
-      case 'next': return this.move(1);
-      case 'prev': return this.move(-1);
-      case 'key': return this.key(m.k, m.shift);
-      case 'release': if (this.open) this.commit(); return;
+      case 'next': if (this.stale(m)) return; return this.move(1);
+      case 'prev': if (this.stale(m)) return; return this.move(-1);
+      case 'key': if (this.stale(m)) return; return this.key(m.k, m.shift);
+      case 'commit': case 'release': return this.onCommit(m);
       case 'thumb': return this.gotThumb(m.wid, fileUrl(m.file));
       case 'thumbfail': return this.thumbFail(m.wids || []);
     }
@@ -137,8 +145,23 @@ class Switcher {
     const changed = p.ax !== this.perm.ax || p.screen !== this.perm.screen; this.perm = p;
     if (changed && this.o.onState) this.o.onState(this.state());
   }
+  // an event from a gesture that is already over (or from before this open): ignore it, except that a gesture event
+  // for an open that has not arrived yet is remembered and replayed when it does
+  stale(m) {
+    if (m.seq === undefined || m.seq === this.seq) return !this.open;
+    if (m.seq > this.seq) { (this.early && this.early.seq === m.seq ? this.early : (this.early = { seq: m.seq, ev: [] })).ev.push(m); }
+    return true;
+  }
+  // Command went up: switch to the selection. Before the panel showed (a quick tap) the switch is instant and the
+  // panel never appears; before the open itself arrived, the open commits the moment it lands.
+  onCommit(m) {
+    if (m.seq !== undefined && m.seq > this.seq) { this.early = { seq: m.seq, ev: [...(this.early && this.early.seq === m.seq ? this.early.ev : []), m] }; return; }
+    if (this.open && (m.seq === undefined || m.seq === this.seq)) this.commit();
+  }
   onOpen(m) {
     this.send({ cmd: 'ack', seq: m.seq });                  // first, so the helper never thinks Koi is hung
+    if (m.seq !== undefined) this.seq = m.seq;
+    const early = this.early && this.early.seq === m.seq ? this.early.ev : []; this.early = null;
     const c = this.cfg();
     const no = () => this.send({ cmd: 'active', on: false });
     if (!c.enabled || (this.o.blocked && this.o.blocked())) return no();
@@ -146,9 +169,17 @@ class Switcher {
     if (!list.length) return no();
     this.list = list; this.opens++;
     this.sel = list.length > 1 ? (m.shift ? list.length - 1 : 1) : 0;
-    this.open = true;
+    this.open = true; this.shown = false;
     this.o.onOpen && this.o.onOpen();
-    this.o.ui.show({ wins: list.map(w => this.view(w)), sel: this.sel, screen: this.perm.screen !== false });
+    for (const e of early) { this.msg(e); if (!this.open) return; }   // Tab, Tab, release all before the open landed
+    const wait = Math.max(0, (this.o.showDelay !== undefined ? this.o.showDelay : SHOW_DELAY) - (m.age || 0));
+    clearTimeout(this.showT); this.showT = null;
+    if (wait <= 0) this.showNow(); else this.showT = setTimeout(() => { this.showT = null; if (this.open) this.showNow(); }, wait);
+  }
+  showNow() {
+    if (!this.open || this.shown) return;
+    this.shown = true;
+    this.o.ui.show({ wins: this.list.map(w => this.view(w)), sel: this.sel, screen: this.perm.screen !== false });
     this.askThumbs();
   }
   view(w) {
@@ -166,7 +197,7 @@ class Switcher {
     if (!wid || !url) return;
     this.thumbs.set(wid, { url, at: this.now() });
     if (this.thumbs.size > 200) { const old = [...this.thumbs].sort((a, b) => a[1].at - b[1].at).slice(0, 100); old.forEach(([k]) => this.thumbs.delete(k)); }
-    if (this.open && this.list.some(w => w.wid === wid)) this.o.ui.thumb(wid, url);
+    if (this.shown && this.list.some(w => w.wid === wid)) this.o.ui.thumb(wid, url);
   }
   async thumbFail(wids) {
     if (!this.o.thumbFallback || !wids.length) return;
@@ -174,8 +205,8 @@ class Switcher {
   }
 
   // ---- moving and picking ----
-  select(i) { const n = this.list.length; if (!this.open || !n) return; i = Math.max(0, Math.min(n - 1, i)); if (i === this.sel) return; this.sel = i; this.o.ui.select(i); }
-  move(d) { const n = this.list.length; if (!this.open || !n) return; this.sel = ((this.sel + d) % n + n) % n; this.o.ui.select(this.sel); }
+  select(i) { const n = this.list.length; if (!this.open || !n) return; i = Math.max(0, Math.min(n - 1, i)); if (i === this.sel) return; this.sel = i; if (this.shown) this.o.ui.select(i); }
+  move(d) { const n = this.list.length; if (!this.open || !n) return; this.sel = ((this.sel + d) % n + n) % n; if (this.shown) this.o.ui.select(this.sel); }
   key(k, shift) {
     if (!this.open) return;
     const n = this.list.length, cols = Math.max(1, this.cols | 0);
@@ -196,14 +227,14 @@ class Switcher {
     return w;
   }
   cancel() { if (!this.open) return; this.closeUI(); this.send({ cmd: 'active', on: false }); }
-  closeUI() { this.open = false; this.o.ui.hide(); }
+  closeUI() { this.open = false; clearTimeout(this.showT); this.showT = null; if (this.shown) { this.shown = false; this.o.ui.hide(); } }
   drop(pred) {
     const keepSel = this.list[this.sel];
     this.list = this.list.filter(w => !pred(w));
     if (!this.list.length) { this.cancel(); return; }
     const i = keepSel ? this.list.indexOf(keepSel) : -1;
     this.sel = i >= 0 ? i : Math.min(this.sel, this.list.length - 1);
-    this.o.ui.update({ wins: this.list.map(w => this.view(w)), sel: this.sel });
+    if (this.shown) this.o.ui.update({ wins: this.list.map(w => this.view(w)), sel: this.sel });
   }
   closeSel() { const w = this.list[this.sel]; if (!w) return; this.send({ cmd: 'close', wid: w.wid, pid: w.pid }); this.drop(x => x === w); }
   quitSel() { const w = this.list[this.sel]; if (!w) return; this.send({ cmd: 'quit', pid: w.pid }); this.drop(x => x.pid === w.pid); }

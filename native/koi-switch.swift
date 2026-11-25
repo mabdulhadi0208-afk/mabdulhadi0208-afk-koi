@@ -46,6 +46,10 @@ func writeLine(_ obj: [String: Any]) {
     }
 }
 func emit(_ obj: [String: Any]) { outQ.async { writeLine(obj) } }
+// Gesture events (open, next, prev, key, commit) go through listQ, the queue that builds the open's window list, so
+// they always reach Koi in the order they happened. In 2.1.0 a quick Cmd+Tab's release overtook its open (the open
+// waits for the window list) and Koi dropped it, so a quick tap did not switch.
+func gesture(_ obj: [String: Any]) { listQ.async { emit(obj) } }
 
 // MARK: - private symbols, looked up at run time (missing ones only turn a feature off, never break the build)
 
@@ -127,7 +131,7 @@ func tapCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent, refc
         let held = flags.contains(trigger)
         if !held && trigDown {
             trigDown = false
-            if active { active = false; emit(["ev": "release"]) }
+            if active { active = false; gesture(["ev": "commit", "seq": seq]) }
         } else if held && !trigDown {
             trigDown = true
             if enabled && Date().timeIntervalSince(lastWarm) > 1.0 { lastWarm = Date(); emit(["ev": "warm"]) }
@@ -142,14 +146,14 @@ func tapCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent, refc
     if code == KC_TAB && modOK {
         if type == .keyDown {
             let shift = flags.contains(.maskShift)
-            if !active { active = true; openNow(shift: shift) } else { emit(["ev": shift ? "prev" : "next"]) }
+            if !active { active = true; openNow(shift: shift) } else { gesture(["ev": shift ? "prev" : "next", "seq": seq]) }
             swallowUp.insert(code)
         }
         return nil
     }
     if active && flags.contains(trigger), let k = ACTIVE_KEYS[code] {
         if type == .keyDown {
-            emit(["ev": "key", "k": k, "shift": flags.contains(.maskShift)])
+            gesture(["ev": "key", "k": k, "shift": flags.contains(.maskShift), "seq": seq])
             if k == "esc" { active = false }
             swallowUp.insert(code)
         }
@@ -166,9 +170,10 @@ func openNow(shift: Bool) {
     let item = DispatchWorkItem { koiSilent(s) }
     ackItem = item
     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: item)
+    let t0 = Date()
     listQ.async {
         let wins = listWindows(icons: true)
-        emit(["ev": "open", "seq": s, "shift": shift, "windows": wins])
+        emit(["ev": "open", "seq": s, "shift": shift, "windows": wins, "age": Int(Date().timeIntervalSince(t0) * 1000)])
     }
 }
 
@@ -198,7 +203,7 @@ func tapTimedOut() {
     let f = CGEventSource.flagsState(.combinedSessionState)
     if !f.contains(trigger) {
         trigDown = false
-        if active { active = false; emit(["ev": "release"]) }
+        if active { active = false; gesture(["ev": "commit", "seq": seq]) }
     }
     emit(["ev": "tap", "state": "on", "reenabled": true])
 }
@@ -388,8 +393,10 @@ func focus(_ wid: UInt32, _ pid: Int32) {
         AXUIElementSetAttributeValue(el, "AXMain" as CFString, kCFBooleanTrue)
         AXUIElementSetAttributeValue(AXUIElementCreateApplication(pid), "AXFocusedWindow" as CFString, el)
     }
-    if !frontOK, let a = app {
-        DispatchQueue.main.async { _ = a.activate(options: [.activateIgnoringOtherApps]) }
+    if let a = app {
+        if !frontOK { DispatchQueue.main.async { _ = a.activate(options: [.activateIgnoringOtherApps]) } }
+        // never fail silently: if the app is still not in front a moment later, activate it the plain way
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) { if !a.isActive { _ = a.activate(options: [.activateIgnoringOtherApps]) } }
     }
 }
 func closeWindow(_ wid: UInt32, _ pid: Int32) {
