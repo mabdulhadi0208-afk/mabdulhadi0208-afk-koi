@@ -4,3 +4,5 @@ dist
 *.key
 *.cer
 .koi-signing
+native/bin
+native/build

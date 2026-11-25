@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Koi 2.0, the fan app switcher</title>
+<title>Koi 2.1, the fan app switcher</title>
 <style>
 /* Koi 2.0 in Lumen's design language (Lumen 4.0, docs/NOVA.md): the accent #5b8cff with its two partners, the 4.1
    palette (cyan, violet, amber, pink, deep), Lumen's liquid glass recipe painted with gradients (rims, sheen,
@@ -191,6 +191,16 @@ body.ov .wall,body.ov .menubar,body.ov .hero,body.ov .ctl,body.ov #film,body.ov 
 .mkc .r{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;margin-top:6px;border-radius:14px;background:rgba(255,255,255,.07);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);font:700 13px/1 var(--head)}
 .mkc .r u{text-decoration:none;opacity:.75}.mkc .big{justify-content:center;gap:8px;background:var(--koi)!important;font-weight:800;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 12px 24px -10px var(--pink)!important}
 .mkc kbd{font-size:11px}
+/* 2.1: the window switcher, as a centred glass sheet whose rim glides tile to tile */
+.mksw{position:absolute;left:50%;top:50%;width:820px;margin:-150px 0 0 -410px;padding:22px;border-radius:34px;display:grid;grid-template-columns:repeat(4,1fr);gap:16px;pointer-events:none;animation:pop .9s cubic-bezier(.3,1.5,.5,1) both;
+  background:radial-gradient(60% 80% at 10% 0%,rgba(91,140,255,.35),transparent 70%),radial-gradient(60% 80% at 100% 100%,rgba(244,103,155,.25),transparent 70%),rgba(16,19,32,.9);box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 0 0 1px rgba(255,255,255,.08),0 40px 120px -20px rgba(91,140,255,.6)}
+.mksw .t{position:relative;border-radius:20px;padding:9px;background:rgba(255,255,255,.06);box-shadow:inset 0 1px 0 rgba(255,255,255,.12);font:760 12px/1 var(--head);color:#fff;text-align:left}
+.mksw .t i{display:block;height:112px;margin-top:8px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.18) 0 14px,transparent 14px),linear-gradient(160deg,var(--c),color-mix(in srgb,var(--c) 30%,#0a0c15))}
+.mksw .t i:after{content:"";display:block;margin:30px 14px 0;height:46px;border-radius:6px;background:repeating-linear-gradient(180deg,rgba(255,255,255,.35) 0 5px,transparent 5px 12px)}
+.mksw .rim{position:absolute;left:16px;top:16px;width:calc((100% - 92px)/4 + 12px);height:calc(100% - 32px);border-radius:24px;padding:3px;
+  background:linear-gradient(120deg,#13c1cd,#fff 22%,#5b8cff 45%,#a66be3 68%,#f4679b);-webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
+  filter:drop-shadow(0 0 18px rgba(91,140,255,.9));animation:mkglide 4s .9s both}
+@keyframes mkglide{0%{transform:translateX(calc(100% + 4px))}18%,30%{transform:translateX(calc(200% + 8px));animation-timing-function:cubic-bezier(.3,1.35,.5,1)}48%,60%{transform:translateX(calc(300% + 12px));animation-timing-function:cubic-bezier(.3,1.35,.5,1)}78%,100%{transform:translateX(calc(100% + 4px));animation-timing-function:cubic-bezier(.3,1.35,.5,1)}}
 .tg{width:36px;height:22px;border-radius:99px;background:var(--koi);position:relative}.tg:after{content:'';position:absolute;top:3px;right:3px;width:16px;height:16px;border-radius:50%;background:#fff}
 .pbar{height:8px;border-radius:9px;background:rgba(255,255,255,.12);margin:12px 0;overflow:hidden}.pbar em{display:block;height:100%;width:100%;background:linear-gradient(90deg,#1fd49a,var(--cyan));transform-origin:0 50%;animation:fill 3.2s ease-out forwards}
 @keyframes fill{from{transform:scaleX(0)}to{transform:none}}
@@ -215,7 +225,7 @@ body.ov .wall,body.ov .menubar,body.ov .hero,body.ov .ctl,body.ov #film,body.ov 
 <div class="wall"><div class="pn p1"></div><div class="pn p2"></div><div class="pn p3"></div><div class="pn p4"></div></div>
 <div class="menubar"><b>Finder</b><span>File</span><span>Edit</span><span>View</span><span>Go</span><span>Window</span><span class="sp"></span>
 <span class="koi" id="mbK"></span><span>76%</span><span id="clock"></span></div>
-<div class="hero"><div class="eye">Koi 2.0</div><h1>Every app, one flick away.</h1><p>Press <kbd>⌥ Space</kbd>, tap <kbd>Right ⌘</kbd> or middle-click. The fan blooms around your cursor: point at a wedge or type its letter, then <kbd>Return</kbd>. Type the same letter again to cycle. Scroll for more. <kbd>Esc</kbd> closes.</p></div>
+<div class="hero"><div class="eye">Koi 2.1</div><h1>Every app, one flick away.</h1><p>Press <kbd>⌥ Space</kbd>, tap <kbd>Right ⌘</kbd> or middle-click. The fan blooms around your cursor: point at a wedge or type its letter, then <kbd>Return</kbd>. Type the same letter again to cycle. Scroll for more. <kbd>Esc</kbd> closes.</p></div>
 <div id="stage"><div id="pool"></div><div id="halo"></div><div id="hub"><div class="hb" id="hb0"></div><div class="hb off" id="hb1"></div><div class="pl"></div><div class="wm" id="hwm"></div><div class="tile" id="htile"></div><b id="hname"></b><span id="hhint">RETURN TO OPEN</span><div class="sh"></div></div><div id="q"></div><div id="chips"></div></div>
 <div class="ctl"><label>Size</label><div class="seg" id="ss"><button data-v=".85">S</button><button data-v="1" class="on">M</button><button data-v="1.2">B</button><button data-v="1.4">XL</button></div><label>Theme</label><div class="seg" id="th"><button data-v="d" class="on">Dark</button><button data-v="l">Light</button></div><label>Speed</label><div class="seg" id="sp"><button data-v="1.3" class="on">Fast</button><button data-v="1">Normal</button><button data-v=".7">Soft</button></div><button class="go ghost" id="tour">Tour</button><button class="go ghost" id="snd">Sound off</button><button class="go" id="go">Open Koi</button></div>
 <div id="toast"></div>
@@ -505,16 +515,17 @@ function startChords(){clearInterval(chordT);const seq=['F','C','G','A'];let i=0
 function stopAudio(fade=.7){clearInterval(chordT);if(MG&&AC){try{MG.gain.cancelScheduledValues(AC.currentTime);MG.gain.setValueAtTime(MG.gain.value,AC.currentTime);MG.gain.linearRampToValueAtTime(0,AC.currentTime+fade)}catch(e){}}if(S.sndPrev!==undefined){S.snd=S.sndPrev;S.sndPrev=undefined}setTimeout(()=>{try{AC&&!S.film&&AC.suspend()}catch(e){}},fade*1000+300)}
 const later=(ms,f)=>setTimeout(()=>{if(!cancel)f()},ms);
 const POOLS='<div class="pools"><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i></div>';
-function gate(){S.film=true;F.style.display='block';bk.style.transition='none';bk.style.opacity=1;scene.innerHTML=POOLS+'<div class="brand"><div class="mk">'+logo(150)+'</div><p style="animation:none;opacity:1;font-size:18px;margin-top:4px">The Koi 2.0 film</p><div class="btns" style="animation:none;opacity:1"><button class="pr" id="g1">Play with sound</button><button id="g0">Play without sound</button></div></div>';$('#g1').onclick=()=>playFilm(true);$('#g0').onclick=()=>playFilm(false)}
+function gate(){S.film=true;F.style.display='block';bk.style.transition='none';bk.style.opacity=1;scene.innerHTML=POOLS+'<div class="brand"><div class="mk">'+logo(150)+'</div><p style="animation:none;opacity:1;font-size:18px;margin-top:4px">The Koi 2.1 film</p><div class="btns" style="animation:none;opacity:1"><button class="pr" id="g1">Play with sound</button><button id="g0">Play without sound</button></div></div>';$('#g1').onclick=()=>playFilm(true);$('#g0').onclick=()=>playFilm(false)}
 
-const KV=(()=>{const q=new URLSearchParams(location.search).get('v');if(q)return q;const v='__KOI_VERSION__';return v.indexOf('__')===0?'2.0.2':v})();
+const KV=(()=>{const q=new URLSearchParams(location.search).get('v');if(q)return q;const v='__KOI_VERSION__';return v.indexOf('__')===0?'2.1.0':v})();
 // What's new: only this version's changes
 const WHATS_NEW=[
- ['01','No more cold first open','The first fan after Koi has sat idle for a while is now as smooth as every other one. macOS no longer puts the fan to sleep while it waits.','#5b8cff'],
- ['02','Warms up as you reach for it','The moment the first key of your hotkey goes down, Koi wakes the fan, so it is ready before the second key lands.','#ff8a3d'],
- ['03','The bloom gets the whole Mac','Koi refreshes your app list only after the fan has finished opening, never during it.','#13c1cd']];
+ ['01','Cmd+Tab, with every window','Hold Command and press Tab: a glass sheet shows every open window across your apps, with a live preview, its app icon and its title. Let go to jump to that exact window.','#e0559a'],
+ ['02','A rim that glides','Tab, Shift Tab, the arrow keys, hover and the scroll wheel all move one glowing rim from window to window on a soft spring. Q quits the app, W closes the window, Esc cancels.','#5b8cff'],
+ ['03','Most recent first','The first Tab takes you to the window you used last, just like Windows. Minimized windows come back when you pick them.','#13c1cd'],
+ ['04','Yours to tune','In Hotkeys, Window switcher: replace Cmd+Tab or keep Apple\u2019s, show all apps or just this Space, and include minimized windows. If a permission is missing, Koi shows exactly what to do, and Apple\u2019s Cmd+Tab keeps working meanwhile.','#ffb547']];
 const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
-const STEPS=14;
+const STEPS=15;
 function say(n,t,d){cap.classList.remove('in');void cap.offsetWidth;cap.style.opacity='';cap.querySelector('.n').textContent='STEP '+n+' OF '+STEPS;cap.querySelector('.cw').textContent=n;cap.querySelector('b').textContent=t;cap.querySelector('p').textContent=d;cap.classList.add('in');pg.style.transform=`scaleX(${parseInt(n,10)/STEPS})`;bell(784,.03,1.4);whoosh(.025)}
 function nocap(){cap.classList.remove('in');cap.style.opacity=0}
 function key(t,ms=900){kc.textContent=t;kc.classList.add('in');setTimeout(()=>kc.classList.remove('in'),ms*FS)}
@@ -527,12 +538,13 @@ const kd=k=>window.dispatchEvent(new KeyboardEvent('keydown',{key:k,code:k==='Sp
 function MK(k){const bar='<div class="mkb"><span></span><span></span><span class="mf">'+logo(16)+'</span></div>';
  const c={pop:'<div class="mkc"><div class="hh" style="--c1:#5b8cff;--c2:#a66be3"><i></i><b>Koi</b></div><div class="r big">Open the fan <kbd>⌥ Space</kbd></div><div class="r"><span>Theme</span><u>Dark / Light</u></div><div class="r"><span>Size</span><u>S  M  B  XL</u></div><div class="r"><span>Sounds</span><u class="tg"></u></div></div>',
  hk:'<div class="mkc"><div class="hh" style="--c1:#8b5cf6;--c2:#13c1cd"><i></i><b>Hotkeys</b></div><div class="r"><span>Open the fan</span><kbd>⌥ Space</kbd></div><div class="r"><span>Safari</span><kbd>⌃ ⌥ S</kbd></div><div class="r"><span>Terminal</span><kbd>⌃ ⌥ T</kbd></div><div class="r"><span>Notes</span><kbd>⌘ ⌥</kbd></div></div>',
+ sw:'<div class="mksw"><span class="rim"></span>'+[['Safari','#5b8cff'],['Notes','#ffb547'],['Xcode','#13c1cd'],['Music','#f4679b']].map(a=>'<div class="t" style="--c:'+a[1]+'">'+a[0]+'<i></i></div>').join('')+'</div>',
  up:'<div class="mkc"><div class="hh" style="--c1:#5b8cff;--c2:#f4679b"><i></i><b>Update ready</b></div><div class="r"><span>Koi '+esc(KV)+' to the next one</span></div><div class="pbar"><em></em></div><div class="r big">Restart and update</div></div>'}[k];
- return '<div class="mkw">'+bar+c+'</div>'}
+ return k==='sw'?c:'<div class="mkw">'+bar+c+'</div>'}
 async function intro(){
  pad(CH.A,7,.03);startChords();
  // 1. the download: a pink beam, light pools, a glossy tile and a gradient bar
- scene.innerHTML=POOLS+'<div class="beam"></div><div class="dl"><div class="dr"><div class="di">'+logo(40)+'</div><div><b>Koi 2.0</b><small id="dls">Downloading 0%</small></div></div><div class="pb"><i></i></div></div>';
+ scene.innerHTML=POOLS+'<div class="beam"></div><div class="dl"><div class="dr"><div class="di">'+logo(40)+'</div><div><b>Koi 2.1</b><small id="dls">Downloading 0%</small></div></div><div class="pb"><i></i></div></div>';
  await sleep(800);
  const bar=scene.querySelector('.pb i'),sm=$('#dls'),t0=performance.now(),D=2200*FS;let ld=-1;
  for(;;){if(cancel)throw'x';const t=Math.min(1,(performance.now()-t0)/D),e=1-Math.pow(1-t,2.2);bar.style.transform=`scaleX(${e})`;{const dc=Math.floor(e*10);if(dc!==ld){ld=dc;bell(700+dc*55,.02,.3)}}sm.textContent=t>=1?'Installed. Ready to fan out.':`Downloading ${Math.round(e*100)}%  ·  ${(e*42).toFixed(1)} MB of 42 MB`;if(t>=1)break;await rf()}
@@ -540,8 +552,13 @@ async function intro(){
  await sleep(700);
  // 2. the petals fly in and lock into the mark; a giant faded watermark swings in behind "Koi 2.0"
  riser(.6,.1);whoosh(.05);later(520,()=>boom(.75));[[500,440],[660,523],[820,659]].forEach(([ms,f])=>later(ms,()=>bell(f,.07,2.6)));later(1250,()=>bell(1318,.05,3));later(1900,()=>pad(CH.F.concat([440]),6,.04));
- scene.innerHTML=POOLS+'<div class="beam"></div><div class="wmk">'+logo('100%',false,true)+'</div><div class="brand"><div class="mk">'+logo(150,true)+'</div><div class="ver"><span style="animation-delay:.55s">K</span><span style="animation-delay:.68s">o</span><span style="animation-delay:.81s">i</span><em style="animation-delay:1.15s">2.0</em></div><p>Every app, one flick away.</p><span class="vchip">Version '+esc(KV)+'</span></div>';
+ scene.innerHTML=POOLS+'<div class="beam"></div><div class="wmk">'+logo('100%',false,true)+'</div><div class="brand"><div class="mk">'+logo(150,true)+'</div><div class="ver"><span style="animation-delay:.55s">K</span><span style="animation-delay:.68s">o</span><span style="animation-delay:.81s">i</span><em style="animation-delay:1.15s">2.1</em></div><p>Every app, one flick away.</p><span class="vchip">Version '+esc(KV)+'</span></div>';
  await sleep(3600);
+ // 2b. new in 2.1: the window switcher glides in under a giant headline, the rim sweeping window to window
+ riser(.5,.08);later(420,()=>boom(.6));[0,1000,2000].forEach((ms,i)=>later(1300+ms,()=>bell(587+i*110,.05,1.6)));
+ scene.innerHTML=POOLS+'<div class="beam"></div><div class="brand" style="position:absolute;left:0;right:0;top:9vh"><div class="ver" style="font-size:72px"><span style="animation-delay:.1s">Every window.</span> <em style="animation-delay:.45s">One Tab.</em></div></div>'+MK('sw');
+ key('\u2318 Tab',3800);
+ await sleep(5000);
  // 3. what is new in this version, as glowing hero cards
  scene.innerHTML=POOLS+'<div class="wn"><h2><small>What is new</small>Koi '+esc(KV)+'</h2>'+WHATS_NEW.map((w,i)=>'<div style="--c:'+w[3]+';animation-delay:'+(.25+i*.22)+'s"><em>'+w[0]+'</em><span><b>'+w[1]+'</b>'+w[2]+'</span></div>').join('')+'</div>';
  bell(880,.05,2);WHATS_NEW.forEach((w,i)=>later(250+i*220,()=>bell(660+i*90,.035,1.4)));
@@ -575,17 +592,19 @@ async function tutorial(){
  scene.innerHTML=MK('pop');await sleep(4200);
  say('09','Your hotkeys','Pick any combo, even just Command and Option held together. If macOS ever needs Accessibility again, Koi shows you exactly how.');
  scene.innerHTML=MK('hk');await sleep(4200);
- say('10','Updates itself','Koi checks quietly, downloads, then swaps itself in with one click. Your settings come along.');
+ say('10','Every window, one Tab away','Hold Command and press Tab. Each Tab glides to the next window, and letting go jumps straight to it.');
+ key('\u2318 Tab',3600);scene.innerHTML=MK('sw');await sleep(4800);
+ say('11','Updates itself','Koi checks quietly, downloads, then swaps itself in with one click. Your settings come along.');
  scene.innerHTML=MK('up');await sleep(4200);
  scene.innerHTML='';open();await sleep(900);
- say('11','Dark and light','Ink glass at night, porcelain glass by day, just like Lumen.');
+ say('12','Dark and light','Ink glass at night, porcelain glass by day, just like Lumen.');
  {const b=$('#th button[data-v=l]'),[x,y]=cen(b);await glide(x,y,1100);click();b.click();await sleep(2600);const d=$('#th button[data-v=d]'),[x2,y2]=cen(d);await glide(x2,y2,700);click();d.click();await sleep(900)}
- say('12','Sound, off by default','Soft glass clicks whenever you want them. One tap to switch on.');
+ say('13','Sound, off by default','Soft glass clicks whenever you want them. One tap to switch on.');
  {const b=$('#snd'),[x,y]=cen(b);await glide(x,y,1000);b.classList.add('pulse');await sleep(2600);b.classList.remove('pulse')}
- say('13','Make it yours','Four sizes, three speeds. The fan re-blooms instantly.');
+ say('14','Make it yours','Four sizes, three speeds. The fan re-blooms instantly.');
  {const b=$('#ss button[data-v="1.2"]'),[x,y]=cen(b);await glide(x,y,900);S.mx=S.my=0;S.hp=false;click();b.click();await sleep(2600);
   const m=$('#ss button[data-v="1"]'),[x2,y2]=cen(m);await glide(x2,y2,800);S.mx=S.my=0;S.hp=false;click();m.click();await sleep(2200)}
- say('14','Launch','Return opens the app, with a burst of colour.');
+ say('15','Launch','Return opens the app, with a burst of colour.');
  {const[x,y]=wp('Terminal');await glide(x,y,1100);await sleep(700);key('Return',900);kd('Enter');await sleep(2600)}
  nocap();fc.style.opacity=0;pg.style.transform='scaleX(1)';
 }

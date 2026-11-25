@@ -28,6 +28,22 @@ jobs:
         with: { node-version: 20 }
       - run: npm install
         if: steps.v.outputs.release == 'true'
+      - name: Build the window switcher helper (koi-switch, universal; a compile failure fails the release)
+        if: steps.v.outputs.release == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          xcrun swiftc --version
+          bash native/build.sh
+      - name: Helper self-test (lists windows with no permissions, prints JSON, exits 0)
+        if: steps.v.outputs.release == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          native/bin/koi-switch --selftest | tee selftest.json
+          node -e "const r=JSON.parse(require('fs').readFileSync('selftest.json','utf8').trim().split('\n').pop()); if(!r.ok||!r.selftest||typeof r.windows!=='number')process.exit(1); console.log('selftest ok:',r.windows,'windows, symbolic hotkeys',r.symbolicHotKeys,', exact focus',r.focusExact,', ScreenCaptureKit',r.screenCaptureKit)"
+          native/bin/koi-switch --perm
+          native/bin/koi-switch --restore
       - name: Key hook that only listens to keys (falls back to the stock build if it cannot compile)
         if: steps.v.outputs.release == 'true'
         run: node build/patch-uiohook.js
@@ -77,6 +93,12 @@ jobs:
           for a in dist/mac-arm64/Koi.app dist/mac/Koi.app; do
             if [ -d "$a" ]; then echo "== $a"; codesign -dv "$a" 2>&1 | head -8; codesign --verify --deep --strict "$a" || { echo "::error::signature invalid on $a"; exit 1; }
               got=$(defaults read "$PWD/$a/Contents/Info.plist" CFBundleShortVersionString); [ "$got" = "$V" ] || { echo "::error::$a is $got, expected $V"; exit 1; }; fi
+          done
+          # the window switcher helper ships inside both apps, executable, signed and runnable
+          for a in dist/mac-arm64/Koi.app dist/mac/Koi.app; do
+            if [ -d "$a" ]; then h="$a/Contents/MacOS/koi-switch"; [ -x "$h" ] || { echo "::error::$h missing or not executable"; exit 1; }
+              codesign --verify --strict "$h" || { echo "::error::$h is not signed"; exit 1; }
+              "$h" --selftest >/dev/null || { echo "::error::$h --selftest failed"; exit 1; }; fi
           done
           # the zip must unpack to Koi.app with the right version, exactly like the updater does it
           rm -rf /tmp/kz && mkdir /tmp/kz && ditto -x -k dist/Koi-mac-arm64.zip /tmp/kz && got=$(defaults read /tmp/kz/Koi.app/Contents/Info.plist CFBundleShortVersionString) && [ "$got" = "$V" ] || { echo "::error::zip does not unpack to Koi.app $V"; exit 1; }

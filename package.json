@@ -1,7 +1,7 @@
 {
   "name": "koi",
-  "version": "2.0.2",
-  "description": "Koi: a springy, fluid fan app switcher for macOS",
+  "version": "2.1.0",
+  "description": "Koi: a springy, fluid fan app switcher and Cmd+Tab window switcher for macOS",
   "main": "main.js",
   "author": "Koi",
   "license": "MIT",
@@ -21,6 +21,7 @@
       "main.js",
       "preload.js",
       "updater.js",
+      "switcher.js",
       "renderer/**",
       "assets/**"
     ],
@@ -47,6 +48,12 @@
         }
       ],
       "artifactName": "Koi-mac-${arch}.${ext}",
+      "extraFiles": [
+        {
+          "from": "native/bin/koi-switch",
+          "to": "MacOS/koi-switch"
+        }
+      ],
       "extendInfo": {
         "LSUIElement": true
       },

@@ -11,6 +11,7 @@ html,body{height:100%;background:transparent;overflow:hidden}
   box-shadow:0 0 0 .5px var(--line),0 2px 6px rgba(10,14,30,.3),0 18px 34px -12px color-mix(in srgb,var(--accent) 60%,transparent)}
 .card{--accent:#ff8a3d}
 .card.fixed{--accent:#16c79a}
+.card.screen:not(.fixed){--accent:#a66be3}
 .bg{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
 .bg i{position:absolute;border-radius:50%;animation:settle 2.4s var(--ease) both;transition:background .6s}
 .bg i:nth-child(1){left:-150px;top:-180px;width:480px;height:360px;background:radial-gradient(closest-side,color-mix(in srgb,var(--accent) 72%,transparent),transparent);--dx:-60px;--dy:-30px}
@@ -120,14 +121,34 @@ function paint(p){
   fixed:['All set',`${words} is back`,'Koi has its keys again and the hotkey is live. No restart needed.',DONE,'Listening'],
   ok:['All set',`${words} is live`,'Koi can hear your hotkey.',DONE,'Listening'],
   waiting:['All set',`${words} is live`,'Koi can hear your hotkey.',DONE,'Listening']}[s]||['Koi permission','Koi permissions','',SHIELD,''];
+ if(p.kind)return paintSwitch(p,keys);
  const good=s==='fixed'||s==='ok'||s==='waiting';
  card.className='card show'+(good?' fixed':' wait');
  $('#eye').textContent=T[0];$('#title').textContent=T[1];$('#sub').textContent=T[2];$('#glyph').innerHTML=T[3];$('#pt').textContent=T[4];
  $('#go').textContent=good?'Done':'Open Accessibility';
  $('#foot').textContent=good?'Koi turned the hotkey on without a restart.':p.mac===false?'Koi keeps trying on its own.':'No restart needed: Koi turns the hotkey on the moment macOS says yes.';
 }
+// Koi 2.1: the same card for the window switcher. "screen": Screen Recording for live previews; "access": Accessibility
+// so Koi can take over Cmd+Tab. Without them the switcher still works (icons and titles), or macOS keeps Cmd+Tab.
+const SCREEN='<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2.5"/><path d="M8 21h8M12 17v4"/><rect x="6.5" y="7.5" width="5" height="4" rx="1"/><rect x="12.5" y="9.5" width="5" height="4" rx="1"/></svg>';
+function step(i,b,t){const el=$('#steps').children[i];el.querySelector('b').textContent=b;el.querySelector('span').textContent=t}
+function paintSwitch(p,keys){
+ const good=p.state==='fixed',scr=p.kind==='screen';
+ card.className='card show'+(good?' fixed':' wait')+(scr?' screen':'');
+ $('#lbl').textContent=scr?'shows live window previews':'opens Koi\u2019s window switcher';
+ $('#eye').textContent=good?'All set':scr?'Live previews':'Window switcher';
+ $('#title').textContent=good?(scr?'Previews are on':'Cmd+Tab is Koi\u2019s now'):scr?'Turn on live previews':'Let Koi take over Cmd+Tab';
+ $('#sub').textContent=good?(scr?'Every window now shows a live thumbnail. No restart needed.':'Hold Command and press Tab: every window, with a preview.'):scr?'Right now the switcher shows icons and titles. Screen Recording adds a live thumbnail of every window, taken only while it is open.':'Koi needs Accessibility to catch Cmd+Tab first. Until then, Apple\u2019s own switcher keeps working.';
+ $('#glyph').innerHTML=good?DONE:scr?SCREEN:KEYS;$('#pt').textContent=good?'Ready':'Waiting for macOS';
+ if(scr){step(0,'Open Screen Recording','System Settings, Privacy and Security, Screen and System Audio Recording. The button goes straight there.');step(1,'Switch Koi on','If Koi is not in the list, click + and pick Koi in Applications.');step(2,'Choose Later','If macOS offers Quit and Reopen, pick Later: Koi picks it up by itself.')}
+ else{step(0,'Open Accessibility','System Settings, Privacy and Security, Accessibility. The button goes straight there.');step(1,'Switch Koi on','If Koi is already on after an update, select it, click -, then add it again with +.');step(2,'Hold Command, press Tab','Koi takes over the moment macOS says yes. No restart.')}
+ $('#go').textContent=good?'Done':scr?'Open Screen Recording':'Open Accessibility';
+ $('#input').style.display='none';
+ $('#foot').textContent=good?'Koi turned it on without a restart.':scr?'Not now? The switcher still shows icons and titles.':'Not now? Apple\u2019s Cmd+Tab keeps working meanwhile.';
+}
 $('#go').onclick=()=>{if(!api)return;const s=P.state;api.action(s==='fixed'||s==='ok'||s==='waiting'?'close':'access')};
+const KIND=new URLSearchParams(location.search).get('kind');
 $('#input').onclick=()=>api&&api.action('input');
 $('#later').onclick=()=>api&&api.action('later');$('#close').onclick=()=>api&&api.action('later');
-if(api){api.state().then(paint);api.onState(paint);api.onHide(leave)}else{paint({state:'denied',chord:'⌘ ⌥',mac:true})}
+if(api){api.state().then(paint);api.onState(paint);api.onHide(leave)}else{paint(KIND?{kind:KIND,state:'need',chord:'⌘ Tab',mac:true}:{state:'denied',chord:'⌘ ⌥',mac:true})}
 </script></body></html>

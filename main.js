@@ -5,9 +5,11 @@
 const {app,BrowserWindow,Tray,globalShortcut,screen,ipcMain,nativeImage,Notification,shell}=require('electron');
 const path=require('path'),fs=require('fs'),fsp=fs.promises,os=require('os'),crypto=require('crypto'),{pathToFileURL}=require('url'),{execFile}=require('child_process');
 const updater=require('./updater');
+const {Switcher}=require('./switcher');
 
 let tray=null,overlay=null,tour=null,settingsWin=null,aboutWin=null,popWin=null,popShown=false,lastPopHide=0,trayFrames=[],trayTimer=null,shown=false,lastToggle=0,hideT=null;
-const DEF={theme:'dark',size:1,speed:1.3,sound:false,shortcut:'Alt+Space',hotkeys:[],tourSeen:false,usage:{},autoDownload:true,updateCard:true,skipped:null};
+const DEF={theme:'dark',size:1,speed:1.3,sound:false,shortcut:'Alt+Space',hotkeys:[],tourSeen:false,usage:{},autoDownload:true,updateCard:true,skipped:null,
+  switcher:true,switchReplace:true,switchScope:'all',switchMinimized:true,swScreenAsked:false};
 let S={...DEF};
 const SF=()=>path.join(app.getPath('userData'),'koi-settings.json');
 const load=()=>{try{S={...DEF,...JSON.parse(fs.readFileSync(SF(),'utf8'))}}catch(e){}if(!S.migFast){S.speed=1.3;S.migFast=true;saveSoon()}};
@@ -160,7 +162,7 @@ function warmOverlay(){
   if(shown||Date.now()-warmAt<1500||!overlay||overlay.isDestroyed())return;warmAt=Date.now();
   noNap();napLater();try{overlay.webContents.send('koi:warm')}catch(e){}
 }
-function toggle(){const t=Date.now();if(t-lastToggle<250)return;lastToggle=t;shown?hideOverlay():showOverlay()}
+function toggle(){if(sw&&sw.isOpen())return;const t=Date.now();if(t-lastToggle<250)return;lastToggle=t;shown?hideOverlay():showOverlay()}
 function openTour(){
   if(tour&&!tour.isDestroyed()){tour.focus();return}
   tour=new BrowserWindow({width:1280,height:800,minWidth:900,minHeight:600,titleBarStyle:'hiddenInset',backgroundColor:'#0a0c15',show:false,
@@ -210,6 +212,7 @@ function onKey(type,keycode,now=Date.now()){
     for(const [k,t] of held)if(now-t>STALE)held.delete(k);    // a key-up macOS never delivered (secure input, sleep, a tap timeout)
     if(!held.size){dirty=false;fired=false}                    // a fresh gesture: nothing stuck from the last one
     held.set(m+':'+keycode,now);
+    if(sw&&sw.isOpen())dirty=true;                             // Cmd+Tab is in progress: Command + Option must not fire
     if(dirty||fired||recording)return;
     const acc=cur();
     if(!acc.includes('+')){if(chords.some(c=>c.fn===toggle&&c.acc.split('+').includes(acc)))warmOverlay();return}
@@ -319,6 +322,7 @@ function openPane(which){
   if(BAD.includes(health))showPermCard(true);
 }
 ipcMain.handle('perm:action',(_e,a)=>{
+  if(swCard&&!swCard.isDestroyed()&&_e&&_e.sender===swCard.webContents)return swCardAction(a);
   if(a==='state')return permState();
   if(a==='access'||a==='input')openPane(a);
   else if(a==='later'){permSnooze=health;hidePermCard()}
@@ -418,7 +422,7 @@ ipcMain.on('koi:action',(_e,kind,p,name)=>{
   else if(kind==='quit')execFile('osascript',['-e',`tell application "${safe}" to quit`],()=>{runSet.delete(name);done()});
 });
 const taken=(acc,skip)=>norm(acc)===norm(S.shortcut)&&skip!=='main'||S.hotkeys.some((h,i)=>i!==skip&&norm(h.acc)===norm(acc));
-ipcMain.handle('koi:s:get',async()=>{if(!catalog.length)await scanAsync();return {status:regStatus,perm:{needed:modOnly(S.shortcut)||S.hotkeys.some(h=>modOnly(h.acc)),trusted:trusted(false),hook:hookOk,err:hookErr,health},main:S.shortcut,hk:S.hotkeys.map(h=>{const e=iconIdx[h.path];return {...h,icon:e&&e.f?iconUrl(e.f):''}}),apps:catalog.map(a=>({name:a.name,path:a.path})).sort((a,b)=>a.name.localeCompare(b.name))}});
+ipcMain.handle('koi:s:get',async()=>{if(!catalog.length)await scanAsync();return {sw:swSettings(),status:regStatus,perm:{needed:modOnly(S.shortcut)||S.hotkeys.some(h=>modOnly(h.acc)),trusted:trusted(false),hook:hookOk,err:hookErr,health},main:S.shortcut,hk:S.hotkeys.map(h=>{const e=iconIdx[h.path];return {...h,icon:e&&e.f?iconUrl(e.f):''}}),apps:catalog.map(a=>({name:a.name,path:a.path})).sort((a,b)=>a.name.localeCompare(b.name))}});
 ipcMain.on('koi:s:openAccess',()=>openPane('access'));
 ipcMain.on('koi:s:fixPerm',()=>{if(BAD.includes(health))showPermCard(true);else openPane('access')});
 ipcMain.handle('koi:s:pause',()=>{recording=true;globalShortcut.unregisterAll()});
@@ -448,25 +452,147 @@ ipcMain.on('koi:tourDone',()=>{
   try{new Notification({title:'Koi is ready',body:`Press ${label()} anywhere and your apps fan out around the cursor. Koi lives in the menu bar.`}).show()}catch(e){}
 });
 
+// ---------- the window switcher (Koi 2.1): Cmd+Tab with live window previews ----------
+// The keyboard side lives in a small native helper (native/koi-switch.swift, Koi.app/Contents/MacOS/koi-switch):
+// its event tap consumes Cmd+Tab so Apple's switcher never shows. The logic lives in switcher.js. The panel is a
+// warm hidden window like the fan (never backgrounded), shown without taking focus, so the app you are in stays the
+// front app until you let go of Command.
+const SW_OK=process.platform==='darwin'||!!process.env.KOI_SWITCH_HELPER;
+let swWin=null,swShown=false,swHideT=null,swBoundsKey='',swCard=null,swCardKind='',swCardT=null,swCardAuto=null,swSnooze={};
+const swBin=()=>app.isPackaged?path.join(path.dirname(process.execPath),'koi-switch'):path.join(__dirname,'native','bin','koi-switch');
+function swRun(args,opts={}){
+  const {spawn}=require('child_process');
+  if(process.env.KOI_SWITCH_HELPER)return spawn(process.execPath,[process.env.KOI_SWITCH_HELPER,...args],{...opts,env:{...process.env,ELECTRON_RUN_AS_NODE:'1'}});
+  const bin=swBin();if(!fs.existsSync(bin))throw new Error('koi-switch is missing at '+bin);
+  return spawn(bin,args,opts);
+}
+const swCache=()=>path.join(app.getPath('userData'),'switch-cache');
+// Apple's Cmd+Tab back on, no matter what state the helper died in
+function swRestore(){try{const p=swRun(['--restore'],{stdio:'ignore'});p.on('error',()=>{});p.unref&&p.unref()}catch(e){}}
+function swArea(){return screen.getDisplayNearestPoint(screen.getCursorScreenPoint()).workArea}
+function makeSwitchWin(){
+  const a=swArea();
+  swWin=new BrowserWindow({show:false,frame:false,transparent:true,hasShadow:false,resizable:false,movable:false,skipTaskbar:true,alwaysOnTop:true,fullscreenable:false,
+    focusable:false,acceptFirstMouse:true,backgroundColor:'#00000000',...(process.platform==='darwin'?{type:'panel'}:{}),x:a.x,y:a.y,width:a.width,height:a.height,
+    webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,backgroundThrottling:false}});
+  swBoundsKey=[a.x,a.y,a.width,a.height].join();
+  swWin.setAlwaysOnTop(true,'screen-saver');swWin.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true});
+  swWin.loadFile(path.join(__dirname,'renderer','switcher.html'));
+  swWin.on('closed',()=>{swWin=null;swShown=false});
+  swWin.webContents.on('render-process-gone',()=>{try{swWin&&swWin.destroy()}catch(e){}swWin=null;if(sw&&sw.isOpen())sw.cancel()});
+}
+const swUI={
+  show(p){
+    if(!swWin||swWin.isDestroyed())makeSwitchWin();
+    clearTimeout(swHideT);if(shown)hideNow();
+    const a=swArea(),k=[a.x,a.y,a.width,a.height].join();if(k!==swBoundsKey){swBoundsKey=k;swWin.setBounds(a)}
+    const send=()=>swWin.webContents.send('sw:show',{...p,theme:S.theme,t:Date.now()});
+    if(swWin.webContents.isLoading())swWin.webContents.once('did-finish-load',send);else send();
+    noNap();swShown=true;swWin.showInactive();
+  },
+  select(i){if(swWin&&!swWin.isDestroyed())swWin.webContents.send('sw:select',i)},
+  update(p){if(swWin&&!swWin.isDestroyed())swWin.webContents.send('sw:update',p)},
+  thumb(wid,url){if(swWin&&!swWin.isDestroyed())swWin.webContents.send('sw:thumb',{wid,url})},
+  hide(){
+    if(!swWin||swWin.isDestroyed()||!swShown)return;swShown=false;swWin.webContents.send('sw:hide');
+    clearTimeout(swHideT);swHideT=setTimeout(()=>{if(!swShown&&swWin&&!swWin.isDestroyed())swWin.hide()},170);napLater();
+    if(sw.perm.screen===false&&!S.swScreenAsked&&sw.opens>0){S.swScreenAsked=true;saveSoon();setTimeout(()=>showSwCard('screen'),500)}
+  }
+};
+// previews when the helper could not capture a window: Electron's own window thumbnails (same Screen Recording grant)
+async function swElectronThumbs(wids){
+  const {desktopCapturer}=require('electron'),out={};
+  const src=await desktopCapturer.getSources({types:['window'],thumbnailSize:{width:520,height:340},fetchWindowIcons:false});
+  for(const s of src){const m=/^window:(\d+):/.exec(s.id);if(m&&wids.includes(+m[1])&&!s.thumbnail.isEmpty())out[m[1]]=s.thumbnail.toDataURL()}
+  return out;
+}
+const sw=new Switcher({
+  spawn:()=>swRun(['--cache',swCache(),'--parent',String(process.pid)],{stdio:['pipe','pipe','pipe']}),
+  ui:swUI,settings:()=>S,restore:swRestore,
+  blocked:()=>shown,                                            // the fan is open: it owns the keyboard
+  onOpen:()=>{if(held.size)dirty=true},                         // a real key (Tab) went down in this gesture
+  warm:()=>{noNap();napLater();if(swWin&&!swWin.isDestroyed())try{swWin.webContents.send('sw:warm')}catch(e){}},
+  onState:st=>{if(st.status==='needs-access'&&S.switcher!==false)showSwCard('access');if(swCardKind==='access'&&st.status==='ready')swCardFixed();pushSwCard();sendSettings()},
+  thumbFallback:swElectronThumbs,
+  log:(...a)=>console.error(...a)
+});
+function sendSettings(){if(settingsWin&&!settingsWin.isDestroyed())try{settingsWin.webContents.send('koi:s:changed')}catch(e){}}
+function swStart(){if(SW_OK)sw.start()}
+// ---- the switcher's permission card (renderer/perm.html in its "screen" or "access" mode) ----
+const swCardShown=()=>!!(swCard&&!swCard.isDestroyed()&&swCard.isVisible());
+const swCardState=()=>({kind:swCardKind,state:swCardKind==='screen'?(sw.perm.screen?'fixed':'need'):(sw.status==='ready'?'fixed':'need'),chord:S.switchReplace!==false?'⌘ Tab':'⌥ Tab',mac:process.platform==='darwin'});
+function pushSwCard(){if(swCard&&!swCard.isDestroyed())try{swCard.webContents.send('perm:state',swCardState())}catch(e){}}
+function showSwCard(kind,manual){
+  if(!manual&&swSnooze[kind])return;
+  if(kind==='screen'&&sw.perm.screen&&!manual)return;
+  swCardKind=kind;clearTimeout(swCardAuto);
+  if(swCard&&!swCard.isDestroyed()){if(!swCard.isVisible())swCard.showInactive();pushSwCard();swPoll();return}
+  const d=screen.getPrimaryDisplay().workArea,w=620,h=384;
+  swCard=new BrowserWindow({width:w,height:h,x:Math.round(d.x+d.width/2-w/2),y:d.y+6,frame:false,transparent:true,hasShadow:false,resizable:false,alwaysOnTop:true,skipTaskbar:true,focusable:true,fullscreenable:false,backgroundColor:'#00000000',show:false,
+    webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false}});
+  swCard.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true});swCard.setAlwaysOnTop(true,'screen-saver');
+  swCard.loadFile(path.join(__dirname,'renderer','perm.html'),{query:{theme:S.theme||'dark',kind}});
+  swCard.once('ready-to-show',()=>{if(!swCard||swCard.isDestroyed())return;swCard.showInactive();pushSwCard();swPoll()});
+  swCard.on('closed',()=>{swCard=null;clearTimeout(swCardT);swCardT=null});
+}
+function hideSwCard(){clearTimeout(swCardT);swCardT=null;clearTimeout(swCardAuto);if(!swCard||swCard.isDestroyed())return;try{swCard.webContents.send('perm:hide')}catch(e){}const w=swCard;setTimeout(()=>{if(!w.isDestroyed())w.destroy()},260)}
+function swCardFixed(){pushSwCard();clearTimeout(swCardAuto);swCardAuto=setTimeout(hideSwCard,2800)}
+// only while the card is up: ask a fresh helper process whether macOS said yes (a running process keeps its old answer)
+function swPoll(){
+  clearTimeout(swCardT);swCardT=null;
+  if(!swCardShown()&&!(swCard&&!swCard.isDestroyed()))return;
+  if(swCardKind!=='screen')return;                               // Accessibility: the helper retries its tap by itself
+  swCardT=setTimeout(()=>{
+    swCardT=null;let out='';
+    try{const p=swRun(['--perm'],{stdio:['ignore','pipe','ignore']});p.stdout.on('data',d=>out+=d);p.on('error',()=>swPoll());
+      p.on('exit',()=>{let r={};try{r=JSON.parse(out.trim().split('\n').pop())}catch(e){}
+        if(r.screen){sw.perm.screen=true;sw.stop();sw.start();swCardFixed();sendSettings()}else swPoll()})}catch(e){swPoll()}
+  },2500);
+}
+function swCardAction(a){
+  if(a==='state')return swCardState();
+  if(a==='access'){
+    if(swCardKind==='screen'){sw.askScreen();shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture').catch(()=>{})}
+    else{trusted(true);shell.openExternal(PANES.access).catch(()=>{})}
+    swPoll();
+  }else if(a==='later'){swSnooze[swCardKind]=true;hideSwCard()}
+  else if(a==='close')hideSwCard();
+  return swCardState();
+}
+ipcMain.on('sw:hover',(_e,i)=>sw.hover(+i));
+ipcMain.on('sw:pick',(_e,i)=>sw.pick(+i));
+ipcMain.on('sw:wheel',(_e,d)=>sw.wheel(+d));
+ipcMain.on('sw:cols',(_e,n)=>sw.setCols(+n));
+ipcMain.on('sw:key',(_e,k)=>{if(k==='next')sw.move(1);else if(k==='prev')sw.move(-1);else sw.key(String(k))});
+ipcMain.on('sw:perm',()=>{sw.cancel();showSwCard('screen',true)});
+ipcMain.handle('koi:s:sw',(_e,k,v)=>{
+  if(k==='switcher')S.switcher=!!v;else if(k==='switchReplace')S.switchReplace=!!v;else if(k==='switchScope'&&(v==='all'||v==='space'))S.switchScope=v;
+  else if(k==='switchMinimized')S.switchMinimized=!!v;else if(k==='previews'){showSwCard('screen',true);return swSettings()}else if(k==='access'){showSwCard('access',true);return swSettings()}
+  saveSoon();if(SW_OK){if(S.switcher)sw.revive();else sw.stop()}return swSettings();
+});
+function swSettings(){return {on:S.switcher!==false,replace:S.switchReplace!==false,scope:S.switchScope==='space'?'space':'all',minimized:S.switchMinimized!==false,supported:SW_OK,status:sw.status,perm:sw.perm}}
+
 // ---------- lifecycle ----------
 app.whenReady().then(()=>{
   load();
   if(app.dock)app.dock.hide();
   loadFrames();tray=new Tray(trayFrames[6]);tray.setToolTip('Koi');
   tray.on('click',()=>togglePopover());tray.on('right-click',()=>togglePopover());
-  updater.start({app,settings:()=>S,setBadge,onState:()=>sendPop(),saveSkip:v=>{S.skipped=v;saveSoon()},beforeQuit:()=>{app.isQuitting=true;quitting=true;saveNow();stopHook()}});
+  updater.start({app,settings:()=>S,setBadge,onState:()=>sendPop(),saveSkip:v=>{S.skipped=v;saveSoon()},beforeQuit:()=>{app.isQuitting=true;quitting=true;saveNow();stopHook();try{sw.stop()}catch(e){}}});
   reg();makeOverlay();
+  if(SW_OK){makeSwitchWin();setTimeout(swStart,700)}
   setTimeout(()=>prewarm().catch(e=>console.error('prewarm',e&&e.message)),1200);
-  try{const {powerMonitor}=require('electron');['resume','unlock-screen'].forEach(ev=>powerMonitor.on(ev,()=>setTimeout(()=>{resetKeys();if(ev==='resume'&&hookOk)stopHook();reg()},1500)));}catch(e){}   // a fresh tap after sleep; key-ups lost while asleep are dropped
+  try{const {powerMonitor}=require('electron');['resume','unlock-screen'].forEach(ev=>powerMonitor.on(ev,()=>setTimeout(()=>{resetKeys();if(ev==='resume'&&hookOk)stopHook();reg();if(SW_OK&&S.switcher!==false)sw.revive()},1500)));}catch(e){}   // a fresh tap after sleep; key-ups lost while asleep are dropped
   setTimeout(reg,3000);setTimeout(reg,9000);
   if(!S.tourSeen)openTour();
   if(process.env.KOI_TEST)global.__koiTest={show:showOverlay,hide:hideOverlay,toggle,
     popover:async({theme}={})=>{if(theme){S.theme=theme}showPopover();await new Promise(r=>setTimeout(r,60));return popWin},hidePopover,
     updateCard:s=>updater._preview(s),closeCard:()=>updater.actions.close(),about:()=>{openAbout();return aboutWin},
     setHotkeys:(sc,hk)=>{S.shortcut=sc;S.hotkeys=hk;reg()},warmN:()=>warmAt,state:()=>({S,catalog:catalog.length,icons:Object.keys(iconIdx).length,hookOk,chords:chords.length,retry:!!retryT,health,probe:!!probeT,evN}),
+    sw:{core:sw,win:()=>swWin,card:()=>swCard,cardKind:()=>swCardKind,start:swStart},
     perm:{trust:v=>{trustTest=v},idle:v=>{idleTest=v},key:(t,k,now)=>onKey(t,k,now),fakeHook:()=>{hookLoaded=true;uio={starts:0,start(){this.starts++},stop(){}};return uio},probe:()=>{clearTimeout(probeT);probe()},shortcut:()=>crossCheck(),card:()=>permWin}};
 });
 app.on('second-instance',()=>showOverlay());
 app.on('before-quit',()=>{quitting=true;saveNow()});
-app.on('will-quit',()=>{quitting=true;globalShortcut.unregisterAll();stopHook()});
+app.on('will-quit',()=>{quitting=true;globalShortcut.unregisterAll();stopHook();try{sw.stop()}catch(e){}});
 app.on('window-all-closed',()=>{});

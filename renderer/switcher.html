@@ -1,0 +1,154 @@
+<!DOCTYPE html><html lang="en" class="dark"><head><meta charset="utf-8"><title>Koi window switcher</title>
+<link rel="stylesheet" href="koi.css">
+<style>
+/* Koi 2.1's window switcher, in Lumen's design language: one centred sheet of painted liquid glass (no live blur),
+   a grid of window cards that wraps for many windows, and ONE selection rim that glides from card to card on a
+   jelly spring. Everything that moves is transform or opacity, driven by KoiSpring, and the spring loop sleeps the
+   moment it settles, so nothing runs while the panel is closed or still.
+   The window is created hidden at startup and kept warm (backgroundThrottling off), like the fan. */
+html,body{height:100%;background:transparent;overflow:hidden}
+body{display:grid;place-items:center}
+.panel{position:relative;border-radius:34px;padding:22px 22px 16px;opacity:0;will-change:transform,opacity;max-width:calc(100vw - 60px)}
+.panel::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:8;background:var(--sheen)}
+.pools{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none;z-index:0}
+.pools i{position:absolute;border-radius:50%}
+.pools i:nth-child(1){left:-12%;top:-40%;width:60%;height:110%;background:radial-gradient(closest-side,color-mix(in srgb,var(--accent) 34%,transparent),transparent)}
+.pools i:nth-child(2){right:-10%;bottom:-50%;width:60%;height:120%;background:radial-gradient(closest-side,color-mix(in srgb,var(--c-pink) 24%,transparent),transparent)}
+.pools i:nth-child(3){left:35%;top:-60%;width:40%;height:100%;background:radial-gradient(closest-side,color-mix(in srgb,var(--c-cyan) 22%,transparent),transparent)}
+:root:not(.dark) .pools i{opacity:.6}
+.vp{position:relative;z-index:2;overflow:hidden;border-radius:22px;padding:14px;margin:-14px}
+.grid{position:relative;will-change:transform}
+.tile{position:absolute;left:0;top:0;cursor:default}
+.card{position:absolute;inset:0;border-radius:22px;padding:10px 10px 0;will-change:transform;transform-origin:50% 50%;
+  background:linear-gradient(180deg,rgba(255,255,255,.66),rgba(255,255,255,.34));box-shadow:inset 0 1px 0 #fff,inset 0 0 0 1px var(--line),0 10px 26px -14px rgba(14,18,40,.35)}
+.dark .card{background:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.03));box-shadow:inset 0 1px 0 rgba(255,255,255,.12),inset 0 0 0 1px rgba(255,255,255,.07),0 14px 30px -16px rgba(0,0,0,.7)}
+.head{display:flex;align-items:center;gap:8px;height:26px;margin-bottom:8px;padding:0 2px}
+.head img{width:22px;height:22px;flex:none;object-fit:contain;filter:drop-shadow(0 2px 4px rgba(0,0,0,.25))}
+.head .mono{width:22px;height:22px;flex:none;border-radius:7px;display:grid;place-items:center;font:850 12px/1 var(--display);color:#fff;background:var(--nova)}
+.head b{flex:1;min-width:0;font:760 13px/1.15 var(--display);letter-spacing:-.015em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{flex:none;font:800 9.5px/1 var(--display);letter-spacing:.12em;text-transform:uppercase;padding:5px 7px;border-radius:999px;color:var(--fg2);background:color-mix(in srgb,var(--fg) 8%,transparent)}
+.shot{position:relative;border-radius:14px;overflow:hidden;display:grid;place-items:center;isolation:isolate;
+  background:radial-gradient(80% 90% at 30% 10%,color-mix(in srgb,var(--tc,var(--accent)) 40%,transparent),transparent 70%),linear-gradient(160deg,color-mix(in srgb,var(--tc,var(--accent)) 26%,var(--bg-solid)),color-mix(in srgb,var(--c-violet) 18%,var(--bg-solid)));
+  box-shadow:inset 0 0 0 1px var(--line)}
+.shot .big{width:64px;height:64px;object-fit:contain;filter:drop-shadow(0 10px 18px rgba(0,0,0,.35));transition:opacity .25s}
+.shot .th{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;opacity:0;transition:opacity .22s ease-out}
+.shot .th.in{opacity:1}
+.shot.has .big{opacity:0}
+.sub{height:22px;padding:4px 4px 0;font:650 11.5px/1.3 var(--font);color:var(--fg3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile.min .shot .th{filter:saturate(.55) brightness(.9)}
+/* the one selection rim: a gradient ring of light with a coloured glow, gliding on a spring */
+.halo{position:absolute;left:0;top:0;border-radius:26px;pointer-events:none;z-index:3;will-change:transform,opacity;opacity:0}
+.halo::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:3px;background:linear-gradient(120deg,var(--c-cyan),#fff 22%,var(--accent) 45%,var(--c-violet) 68%,var(--c-pink));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+.halo::after{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;
+  background:radial-gradient(70% 60% at 50% 0%,color-mix(in srgb,var(--accent) 22%,transparent),transparent 70%);
+  box-shadow:0 0 0 6px color-mix(in srgb,var(--accent) 16%,transparent),0 0 34px color-mix(in srgb,var(--accent) 70%,transparent),0 18px 50px -10px color-mix(in srgb,var(--c-violet) 70%,transparent)}
+.foot{position:relative;z-index:2;display:flex;align-items:center;justify-content:center;gap:10px;margin-top:14px;height:30px;font:700 12px/1 var(--display);color:var(--fg2);white-space:nowrap}
+.foot .ttl{max-width:60vw;overflow:hidden;text-overflow:ellipsis;font:820 15px/1.2 var(--display);letter-spacing:-.02em;color:var(--fg)}
+.foot .ttl em{font-style:normal;color:var(--fg3);font-weight:700;margin-left:8px}
+.foot kbd{height:22px;min-width:22px;font-size:11px;border-radius:7px}
+.foot .hint{display:flex;align-items:center;gap:6px;color:var(--fg3)}
+.perm{all:unset;display:none;align-items:center;gap:8px;height:30px;padding:0 14px 0 10px;border-radius:999px;font:800 12px/1 var(--display);color:#fff;cursor:default;
+  background:radial-gradient(70% 90% at 30% 0%,rgba(255,255,255,.3),transparent 70%),linear-gradient(120deg,#a66be3,#f4679b);box-shadow:inset 0 1px 0 rgba(255,255,255,.45),0 6px 16px -4px color-mix(in srgb,#a66be3 70%,transparent)}
+.perm i{width:8px;height:8px;border-radius:50%;background:#fff;box-shadow:0 0 8px #fff}
+.noscreen .perm{display:inline-flex}
+</style></head><body>
+<div class="panel glass" id="panel"><div class="pools"><i></i><i></i><i></i></div>
+ <div class="vp" id="vp"><div class="grid" id="grid"><div class="halo" id="halo"></div></div></div>
+ <div class="foot"><span class="ttl" id="ttl"></span><button class="perm" id="perm"><i></i>Turn on previews</button><span class="hint" id="hint"><kbd>Tab</kbd>next<kbd>Q</kbd>quit<kbd>W</kbd>close</span></div>
+</div>
+<script src="spring.js"></script>
+<script>
+(()=>{
+const api=window.koiAPI&&window.koiAPI.sw,{Sp}=KoiSpring,$=id=>document.getElementById(id);
+const panel=$('panel'),vp=$('vp'),grid=$('grid'),halo=$('halo'),ttl=$('ttl');
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// springs, Lumen tuning (lively, not over-bouncy): the rim, the scroll, the panel
+const K=380,C=27;
+const hx=new Sp(0,K,C),hy=new Sp(0,K,C),sy=new Sp(0,300,30),po=new Sp(0,420,34),ps=new Sp(.94,320,24);
+const apHalo=()=>{halo.style.transform=`translate3d(${hx.x}px,${hy.x}px,0)`};hx.cb=hy.cb=apHalo;
+sy.cb=()=>{grid.style.transform=`translate3d(0,${-sy.x}px,0)`};
+const apPanel=()=>{panel.style.opacity=Math.max(0,Math.min(1,po.x));panel.style.transform=`scale(${ps.x})`};po.cb=ps.cb=apPanel;
+let W=[],tiles=[],sel=0,L={tw:240,th:200,gap:14,cols:1,rows:1,vh:0},moved=false,open=false,last=-1;
+const tileSp=[];
+function layout(n){
+ const maxW=Math.min(innerWidth-120,1480),maxH=innerHeight-150;
+ let tw=n<=4?272:n<=8?240:n<=15?214:188;
+ const gap=14,cols=Math.max(1,Math.min(n,Math.floor((maxW+gap)/(tw+gap))));
+ const rows=Math.ceil(n/cols);
+ const sh=Math.round((tw-20)/1.6),th=sh+10+34+22;
+ const visRows=Math.max(1,Math.min(rows,Math.floor((maxH+gap)/(th+gap))));
+ return {tw,th,sh,gap,cols,rows,vh:visRows*(th+gap)-gap,w:cols*(tw+gap)-gap};
+}
+function tileHTML(w,i){
+ const ic=w.icon?`<img src="${esc(w.icon)}" alt="">`:`<span class="mono">${esc((w.app||'?')[0].toUpperCase())}</span>`;
+ const tag=w.min?'<span class="tag">Minimized</span>':w.hidden?'<span class="tag">Hidden</span>':w.other?'<span class="tag">Other Space</span>':'';
+ return `<div class="card"><div class="head">${ic}<b>${esc(w.title||w.app)}</b>${tag}</div><div class="shot${w.thumb?' has':''}" style="height:${L.sh}px">${w.icon?`<img class="big" src="${esc(w.icon)}" alt="">`:''}<img class="th${w.thumb?' in':''}" alt="" ${w.thumb?`src="${esc(w.thumb)}"`:''}></div><div class="sub">${esc(w.app)}</div></div>`;
+}
+function build(wins){
+ W=wins;tiles.forEach(t=>t.remove());tiles=[];tileSp.length=0;
+ L=layout(W.length);
+ grid.style.width=L.w+'px';grid.style.height=(L.rows*(L.th+L.gap)-L.gap)+'px';vp.style.height=(L.vh+28)+'px';vp.style.width=(L.w+28)+'px';      // + the 14 px breathing room each side for the rim and the swell
+ halo.style.width=(L.tw+12)+'px';halo.style.height=(L.th+12)+'px';
+ W.forEach((w,i)=>{
+  const t=document.createElement('div');t.className='tile'+(w.min?' min':'');t.dataset.i=i;
+  t.style.width=L.tw+'px';t.style.height=L.th+'px';
+  const [x,y]=pos(i);t.style.transform=`translate3d(${x}px,${y}px,0)`;
+  t.innerHTML=tileHTML(w,i);
+  const card=t.firstChild,s=new Sp(1,340,22);s.cb=()=>{card.style.transform=`scale(${s.x})`};tileSp.push(s);
+  const th=t.querySelector('.th');th.onload=()=>{th.classList.add('in');th.parentNode.classList.add('has')};
+  grid.appendChild(t);tiles.push(t);
+ });
+ if(api)api.cols(L.cols);
+}
+const pos=i=>[(i%L.cols)*(L.tw+L.gap),Math.floor(i/L.cols)*(L.th+L.gap)];
+const haloAt=i=>{const [x,y]=pos(i);return [x-6,y-6]};
+function scrollFor(i,jump){
+ const y=pos(i)[1],max=Math.max(0,L.rows*(L.th+L.gap)-L.gap-L.vh);
+ let t=sy.t;if(y<t)t=y;else if(y+L.th>t+L.vh)t=y+L.th-L.vh;t=Math.max(0,Math.min(max,t));
+ if(jump)sy.jump(t);else if(t!==sy.t)sy.set(t);
+}
+function paintTitle(){const w=W[sel];ttl.innerHTML=w?`${esc(w.title||w.app)}<em>${esc(w.title?w.app:'')}</em>`:''}
+function setSel(i,jump){
+ if(!W.length)return;i=Math.max(0,Math.min(W.length-1,i));
+ const prev=sel;sel=i;
+ if(tileSp[prev]&&prev!==i)tileSp[prev].set(1);           // the previous card eases back
+ if(tileSp[i]){if(jump)tileSp[i].jump(1.045);else{tileSp[i].set(1.045);tileSp[i].kick(.5)}}  // the new one swells, springily
+ const [x,y]=haloAt(i);
+ if(jump){hx.jump(x);hy.jump(y)}else{hx.set(x);hy.set(y)}
+ scrollFor(i,jump);paintTitle();
+}
+function show(d){
+ if(d.theme)document.documentElement.classList.toggle('dark',d.theme!=='light');
+ document.body.classList.toggle('noscreen',d.screen===false);
+ build(d.wins||[]);open=true;moved=false;p0=null;
+ sel=-1;setSel(d.sel||0,true);halo.style.opacity=1;
+ po.jump(0);ps.jump(.94);po.set(1);ps.set(1);
+}
+function hide(){open=false;po.set(0);ps.set(.97);tileSp.forEach(s=>s.jump(s.t))}
+function update(d){const keep=W[sel]&&W[sel].wid;build(d.wins||[]);let i=d.sel;if(keep!==undefined){const j=W.findIndex(w=>w.wid===keep);if(j>=0)i=j}sel=-1;setSel(i||0,true)}
+function thumb(wid,url){const i=W.findIndex(w=>w.wid===wid);if(i<0)return;W[i].thumb=url;const th=tiles[i]&&tiles[i].querySelector('.th');if(th&&th.getAttribute('src')!==url)th.src=url}
+// mouse: hover selects (only once the pointer really moved, so the tile under a still cursor is not picked), click picks
+let p0=null;
+grid.addEventListener('pointermove',e=>{if(!open)return;if(!moved){if(!p0){p0=[e.screenX,e.screenY];return}if(Math.hypot(e.screenX-p0[0],e.screenY-p0[1])<6)return;moved=true}const t=e.target.closest('.tile');if(t&&+t.dataset.i!==sel){setSel(+t.dataset.i);api&&api.hover(+t.dataset.i)}});
+grid.addEventListener('click',e=>{const t=e.target.closest('.tile');if(t&&open){setSel(+t.dataset.i);api&&api.pick(+t.dataset.i)}});
+// wheel and trackpad: one step per notch, smooth glide between them
+let acc=0,lastWheel=0;
+addEventListener('wheel',e=>{if(!open)return;e.preventDefault();const now=performance.now();if(now-lastWheel>220)acc=0;lastWheel=now;acc+=Math.abs(e.deltaY)>Math.abs(e.deltaX)?e.deltaY:e.deltaX;
+ while(Math.abs(acc)>=36){const d=acc>0?1:-1;acc-=d*36;local(d)}},{passive:false});
+function local(d){const n=W.length;if(!n)return;const i=((sel+d)%n+n)%n;setSel(i);api&&api.wheel(d)}
+$('perm').onclick=()=>api&&api.perm();
+// keys reach Koi through the helper's tap; these only matter if the panel ever has focus (and in tests)
+addEventListener('keydown',e=>{if(!open)return;const k={ArrowRight:'right',ArrowLeft:'left',ArrowDown:'down',ArrowUp:'up',Escape:'esc',Enter:'return',Tab:e.shiftKey?'prev':'next'}[e.key];if(k){e.preventDefault();api&&api.key(k)}});
+if(api){
+ api.onShow(d=>{window.__swLag=Date.now()-d.t;show(d)});
+ api.onSelect(i=>setSel(i));
+ api.onUpdate(update);api.onThumb(d=>thumb(d.wid,d.url));api.onHide(hide);
+ api.onWarm(()=>{panel.getBoundingClientRect();grid.getBoundingClientRect()});
+}
+// tests: read the springs, and record the rim's path frame by frame
+window.__sw={state:()=>({sel,open,n:W.length,cols:L.cols,rows:L.rows,halo:[hx.x,hy.x],haloT:[hx.t,hy.t],scroll:sy.x,scrollT:sy.t,busy:KoiSpring.busy(),scale:tileSp.map(s=>+s.x.toFixed(3))}),
+ show,setSel,local,pos,
+ track:ms=>new Promise(r=>{const out=[];const t0=performance.now();(function f(n){out.push({t:+(n-t0).toFixed(1),x:+hx.x.toFixed(1),y:+hy.x.toFixed(1),s:+sy.x.toFixed(1)});if(n-t0<ms)requestAnimationFrame(f);else r(out)})(t0)})};
+})();
+</script></body></html>

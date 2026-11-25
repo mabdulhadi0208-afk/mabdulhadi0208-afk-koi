@@ -20,7 +20,23 @@ contextBridge.exposeInMainWorld('koiAPI',{
     updateHotkey:(i,a)=>ipcRenderer.invoke('koi:s:update',i,a),
     removeHotkey:i=>ipcRenderer.invoke('koi:s:remove',i),
     openAccess:()=>ipcRenderer.send('koi:s:openAccess'),
-    fixPerm:()=>ipcRenderer.send('koi:s:fixPerm')
+    fixPerm:()=>ipcRenderer.send('koi:s:fixPerm'),
+    sw:(k,v)=>ipcRenderer.invoke('koi:s:sw',k,v),
+    onChanged:cb=>ipcRenderer.on('koi:s:changed',()=>cb())
+  },
+  sw:{
+    onShow:cb=>sub('sw:show',cb),
+    onSelect:cb=>sub('sw:select',cb),
+    onUpdate:cb=>sub('sw:update',cb),
+    onThumb:cb=>sub('sw:thumb',cb),
+    onHide:cb=>ipcRenderer.on('sw:hide',()=>cb()),
+    onWarm:cb=>ipcRenderer.on('sw:warm',()=>cb()),
+    hover:i=>ipcRenderer.send('sw:hover',i),
+    pick:i=>ipcRenderer.send('sw:pick',i),
+    wheel:d=>ipcRenderer.send('sw:wheel',d),
+    cols:n=>ipcRenderer.send('sw:cols',n),
+    key:k=>ipcRenderer.send('sw:key',k),
+    perm:()=>ipcRenderer.send('sw:perm')
   },
   perm:{
     state:()=>ipcRenderer.invoke('perm:action','state'),

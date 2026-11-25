@@ -10,12 +10,20 @@
 // requirement below. Every update then leaves a stale grant: System Settings still shows Koi switched on, but
 // macOS no longer trusts it. Koi 2.0.1 detects that and walks people through re-adding Koi.
 const { execFileSync } = require('child_process');
-const path = require('path');
+const path = require('path'), fs = require('fs');
 const run = args => execFileSync('codesign', args, { stdio: 'inherit' });
 exports.default = async function (ctx) {
   if (ctx.electronPlatformName !== 'darwin') return;
   const app = path.join(ctx.appOutDir, ctx.packager.appInfo.productFilename + '.app');
   const id = (process.env.KOI_SIGN_IDENTITY || '').trim();
+  // Koi 2.1: the window switcher helper must be in the bundle, executable, and signed like the rest of Koi.
+  // A build without it fails here, loudly, instead of shipping a Koi whose Cmd+Tab switcher cannot start.
+  const helper = path.join(app, 'Contents', 'MacOS', 'koi-switch');
+  if (!fs.existsSync(helper)) throw new Error('koi-switch is missing from ' + helper + ' (run native/build.sh first)');
+  fs.chmodSync(helper, 0o755);
+  const kc0 = id && process.env.KOI_KEYCHAIN ? ['--keychain', process.env.KOI_KEYCHAIN] : [];
+  try { run(['--force', '--sign', id || '-', ...kc0, '--identifier', 'com.koi.switcher.switch', helper]); }
+  catch (e) { if (!id) throw e; console.log('::warning title=signing::helper: stable certificate failed, ad-hoc'); run(['--force', '--sign', '-', '--identifier', 'com.koi.switcher.switch', helper]); }
   let signed = false;
   if (id) {
     try {
@@ -32,5 +40,6 @@ exports.default = async function (ctx) {
     run(['--verify', '--deep', '--strict', app]);
     if (process.env.CI) console.log('::warning title=signing::ad-hoc signed (no KOI_CERT_P12 secret): people must re-add Koi in Accessibility after this update');
   }
+  run(['--verify', '--strict', helper]);
   console.log(execFileSync('codesign', ['-d', '-r-', app]).toString());
 };
