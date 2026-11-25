@@ -19,7 +19,7 @@ app.whenReady().then(async () => {
   const ov = find(/mode=overlay/);
   ok(!!ov, 'overlay window is created at startup');
   ok(ov && !ov.isVisible(), 'overlay starts hidden');
-  ok(ov && ov.webContents.backgroundThrottling !== false && ov.webContents.getBackgroundThrottling(), 'overlay keeps background throttling on');
+  ok(ov && !ov.webContents.getBackgroundThrottling(), 'overlay is never backgrounded (no cold, throttled first open)');
   const b = ov.getBounds(); ok(b.width < 1000 && b.width === b.height, `overlay is sized to the fan (${b.width}x${b.height}), not the display`);
   await sleep(7000);
   const st = T.state(); ok(st.catalog >= 50 && st.icons >= 48, `pre-warm filled the app list and icon cache (${st.catalog} apps, ${st.icons} icons)`);

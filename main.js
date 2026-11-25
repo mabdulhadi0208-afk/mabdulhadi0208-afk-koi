@@ -116,7 +116,13 @@ function fanRect(){
 }
 function makeOverlay(){
   overlay=new BrowserWindow({show:false,frame:false,transparent:true,hasShadow:false,resizable:false,movable:false,skipTaskbar:true,alwaysOnTop:true,fullscreenable:false,backgroundColor:'#00000000',...fanRect(),
-    webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,autoplayPolicy:'no-user-gesture-required'}});
+    webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,autoplayPolicy:'no-user-gesture-required',
+      // Never background the fan's renderer. A hidden, throttled renderer is what made the first open after 5+ minutes
+      // stutter: after 5 minutes hidden Chromium switches on intensive wake-up throttling, drops the renderer to
+      // background priority (on Apple Silicon: the efficiency cores), puts V8 in memory-saving mode and evicts the
+      // compositor's frames, so the first open had to wake, re-promote and rebuild all of it while animating.
+      // This costs nothing while idle: the fan has no timers or loops when closed (npm test checks it).
+      backgroundThrottling:false}});
   overlay.setAlwaysOnTop(true,'screen-saver');
   overlay.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true});
   overlay.loadFile(path.join(__dirname,'renderer','app.html'),{query:{mode:'overlay'}});
@@ -131,16 +137,29 @@ function showOverlay(){
   const l=buildList(),s=sigOf(l),apps=s!==sentSig?l:null;if(apps)sentSig=s;
   const send=()=>overlay.webContents.send('koi:show',{apps,settings:pub(),t:Date.now()});
   if(overlay.webContents.isLoading())overlay.webContents.once('did-finish-load',send);else send();
-  shown=true;overlay.show();overlay.focus();
-  setImmediate(()=>{animateTray(true);refresh()});
+  noNap();shown=true;overlay.show();overlay.focus();
+  // the background refresh (scan, ps, icons) waits until the bloom has settled, so it never competes with it
+  setImmediate(()=>animateTray(true));clearTimeout(refreshT);refreshT=setTimeout(refresh,600);
 }
 // main-side close: the fan plays a short fold, then tells us to hide; a timer makes sure it really goes
 function hideOverlay(){
   if(!overlay||overlay.isDestroyed()||!shown)return;
   shown=false;overlay.webContents.send('koi:close');
-  clearTimeout(hideT);hideT=setTimeout(()=>{if(!shown&&overlay&&!overlay.isDestroyed())overlay.hide()},260);
+  clearTimeout(hideT);hideT=setTimeout(()=>{if(!shown&&overlay&&!overlay.isDestroyed())overlay.hide()},260);napLater();
 }
-function hideNow(){shown=false;clearTimeout(hideT);if(overlay&&!overlay.isDestroyed())overlay.hide()}
+function hideNow(){shown=false;clearTimeout(hideT);if(overlay&&!overlay.isDestroyed())overlay.hide();napLater()}
+// App Nap: an idle menu-bar app gets napped by macOS (timers coalesced, lower priority). Koi holds a
+// "user-initiated activity" only from the first key of the chord, or the show, until 3 s after the fan closes.
+let napId=-1,napT=null,refreshT=null,warmAt=0;
+function noNap(){clearTimeout(napT);napT=setTimeout(napOff,8000);try{const {powerSaveBlocker}=require('electron');if(napId<0||!powerSaveBlocker.isStarted(napId))napId=powerSaveBlocker.start('prevent-app-suspension')}catch(e){}}
+function napOff(){clearTimeout(napT);napT=null;if(shown)return;try{if(napId>=0)require('electron').powerSaveBlocker.stop(napId)}catch(e){}napId=-1}
+function napLater(){clearTimeout(napT);napT=setTimeout(napOff,3000)}
+// warm-up: the first modifier of a chord went down. Wake the app and the fan's renderer (decode the first page of
+// icons, touch layout) in the ~100 ms before the second key arrives, so the show finds everything awake.
+function warmOverlay(){
+  if(shown||Date.now()-warmAt<1500||!overlay||overlay.isDestroyed())return;warmAt=Date.now();
+  noNap();napLater();try{overlay.webContents.send('koi:warm')}catch(e){}
+}
 function toggle(){const t=Date.now();if(t-lastToggle<250)return;lastToggle=t;shown?hideOverlay():showOverlay()}
 function openTour(){
   if(tour&&!tour.isDestroyed()){tour.focus();return}
@@ -192,7 +211,8 @@ function onKey(type,keycode,now=Date.now()){
     if(!held.size){dirty=false;fired=false}                    // a fresh gesture: nothing stuck from the last one
     held.set(m+':'+keycode,now);
     if(dirty||fired||recording)return;
-    const acc=cur();if(!acc.includes('+'))return;
+    const acc=cur();
+    if(!acc.includes('+')){if(chords.some(c=>c.fn===toggle&&c.acc.split('+').includes(acc)))warmOverlay();return}
     const c=chords.find(c=>c.acc===acc);if(c){fired=true;try{c.fn()}catch(e){console.error('chord',e&&e.message)}}
   }else{if(!m)return;held.delete(m+':'+keycode);if(!held.size){dirty=false;fired=false}}
 }
@@ -443,7 +463,7 @@ app.whenReady().then(()=>{
   if(process.env.KOI_TEST)global.__koiTest={show:showOverlay,hide:hideOverlay,toggle,
     popover:async({theme}={})=>{if(theme){S.theme=theme}showPopover();await new Promise(r=>setTimeout(r,60));return popWin},hidePopover,
     updateCard:s=>updater._preview(s),closeCard:()=>updater.actions.close(),about:()=>{openAbout();return aboutWin},
-    setHotkeys:(sc,hk)=>{S.shortcut=sc;S.hotkeys=hk;reg()},state:()=>({S,catalog:catalog.length,icons:Object.keys(iconIdx).length,hookOk,chords:chords.length,retry:!!retryT,health,probe:!!probeT,evN}),
+    setHotkeys:(sc,hk)=>{S.shortcut=sc;S.hotkeys=hk;reg()},warmN:()=>warmAt,state:()=>({S,catalog:catalog.length,icons:Object.keys(iconIdx).length,hookOk,chords:chords.length,retry:!!retryT,health,probe:!!probeT,evN}),
     perm:{trust:v=>{trustTest=v},idle:v=>{idleTest=v},key:(t,k,now)=>onKey(t,k,now),fakeHook:()=>{hookLoaded=true;uio={starts:0,start(){this.starts++},stop(){}};return uio},probe:()=>{clearTimeout(probeT);probe()},shortcut:()=>crossCheck(),card:()=>permWin}};
 });
 app.on('second-instance',()=>showOverlay());

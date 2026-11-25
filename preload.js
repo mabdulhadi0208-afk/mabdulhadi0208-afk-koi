@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('koiAPI',{
   onApps:cb=>sub('koi:apps',cb),
   onSettings:cb=>sub('koi:settings',cb),
   onClose:cb=>ipcRenderer.on('koi:close',()=>cb()),
+  onWarm:cb=>ipcRenderer.on('koi:warm',()=>cb()),
   hide:()=>ipcRenderer.send('koi:hide'),
   iconBad:p=>ipcRenderer.send('koi:iconBad',p),
   launch:(p,n)=>ipcRenderer.send('koi:launch',p,n),
