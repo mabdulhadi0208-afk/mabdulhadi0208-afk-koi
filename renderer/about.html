@@ -1,31 +1,36 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>About Koi</title>
+<!DOCTYPE html><html lang="en" class="dark"><head><meta charset="utf-8"><title>About Koi</title>
 <link rel="stylesheet" href="koi.css">
 <style>
-html,body{height:100%;background:#0c0716;overflow:hidden}
-body{padding:40px 20px 20px;background:radial-gradient(70% 40% at 0% 0%,rgba(255,46,136,.2),transparent 70%),radial-gradient(70% 40% at 100% 100%,rgba(22,198,255,.14),transparent 70%),#0c0716;color:#fff}
-.drag{position:fixed;left:0;right:0;top:0;height:36px;-webkit-app-region:drag}
-#hero{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:34px 24px 26px;border-radius:34px;--hc:#ff2e88;--hc2:#7a3cff;animation:heroIn .8s cubic-bezier(.3,1.45,.5,1) both}
-#hero .big{width:120px;height:120px;border-radius:36px;display:grid;place-items:center;background:radial-gradient(circle at 32% 18%,rgba(255,255,255,.5),transparent 46%),linear-gradient(150deg,#2c0f46,#12061f);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.45),inset 0 0 0 1px rgba(255,255,255,.12),0 0 0 8px rgba(255,46,136,.14),0 22px 44px -14px var(--pink);animation:tile .9s cubic-bezier(.3,1.7,.5,1) .1s both}
-#hero .title{font-size:66px;margin-top:6px}
-#hero .v{font:850 12px/1 var(--head);letter-spacing:.2em;text-transform:uppercase;padding:8px 14px;border-radius:99px;background:rgba(255,255,255,.14);box-shadow:inset 0 0 0 1px rgba(255,255,255,.2)}
-.facts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0;animation:heroIn .8s cubic-bezier(.3,1.45,.5,1) .1s both}
-.facts div{padding:14px 12px;border-radius:20px;text-align:center}
-.facts b{display:block;font:900 22px/1 var(--head);letter-spacing:-.04em;background:linear-gradient(180deg,#fff,color-mix(in oklab,var(--c) 50%,#fff));-webkit-background-clip:text;background-clip:text;color:transparent;margin-bottom:6px}
-.facts span{font:700 11px/1.3 var(--head);color:var(--mut)}
-.acts{display:flex;gap:8px;justify-content:center;animation:heroIn .8s cubic-bezier(.3,1.45,.5,1) .16s both}
-.fine{text-align:center;font:650 11px/1.5 var(--head);color:var(--mut);margin-top:14px}
+/* About, as Lumen's About page (pages/pages41.css .abouthero): the ink hero with the accent's light pools, drifting
+   dots, the giant glyph, the app icon on its plinth and the huge title; then Lumen's glance tiles. */
+html,body{height:100%;overflow:hidden;background:var(--bg-solid)}
+body{padding:40px 20px 20px;background:radial-gradient(60% 40% at 100% 0%,color-mix(in srgb,var(--accent) 16%,transparent),transparent 70%),radial-gradient(50% 40% at 0% 100%,color-mix(in srgb,var(--accent3) 10%,transparent),transparent 70%),var(--bg-solid)}
+.drag{position:fixed;left:0;right:0;top:0;height:36px;-webkit-app-region:drag;z-index:20}
+#hero{flex-direction:column;text-align:center;gap:14px;padding:34px 26px 30px;min-height:0}
+#hero .hero-ic{width:110px;height:110px;border-radius:34px;background:linear-gradient(180deg,rgba(255,255,255,.3),rgba(255,255,255,.04) 50%,rgba(255,255,255,.1)),linear-gradient(150deg,#1d2350,#0b0d1e)}
+#hero h2{font-size:72px;margin:6px 0 4px}
+#hero .lead{margin:0 auto}
+.ver{display:inline-flex;align-items:center;height:30px;padding:0 14px;border-radius:999px;font:800 12px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:#fff;background:rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),inset 0 0 0 1px rgba(255,255,255,.18);margin-top:10px}
+.glance{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:16px 0 14px;animation:cardin .7s var(--spring) .12s both}
+@keyframes cardin{from{opacity:0;transform:translateY(14px)}}
+.gl{display:flex;flex-direction:column;align-items:flex-start;gap:10px;padding:14px;border-radius:22px;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.025));box-shadow:inset 0 1px 0 rgba(255,255,255,.1),inset 0 0 0 1px rgba(255,255,255,.07),0 14px 34px -20px color-mix(in srgb,var(--ic) 70%,transparent)}
+:root:not(.dark) .gl{background:linear-gradient(180deg,rgba(255,255,255,.8),rgba(255,255,255,.5));box-shadow:inset 0 1px 0 #fff,inset 0 0 0 1px var(--line),0 14px 34px -20px color-mix(in srgb,var(--ic) 60%,transparent)}
+.gl b{display:block;font:900 24px/1 var(--display);letter-spacing:-.04em;background:linear-gradient(180deg,var(--fg),color-mix(in srgb,var(--ic) 60%,var(--fg)));-webkit-background-clip:text;background-clip:text;color:transparent}
+.gl span{font:650 11.5px/1.3 var(--display);color:var(--fg2)}
+.acts{display:flex;gap:8px;justify-content:center;animation:cardin .7s var(--spring) .18s both}
+.fine{text-align:center;font:600 11px/1.5 var(--display);color:var(--fg3);margin-top:14px}
 </style></head><body><div class="drag"></div>
-<div class="hero" id="hero"><div class="big" id="big"></div><div class="title">Koi</div><div class="sub">Every app, one flick away. A springy fan app switcher for your Mac.</div><span class="v" id="v">Version 2.0.0</span></div>
-<div class="facts"><div class="slab" style="--c:#ff2e88"><b>8</b><span>wedges per page</span></div><div class="slab" style="--c:#16c6ff"><b>Zero</b><span>loops while closed</span></div><div class="slab" style="--c:#ffad1f"><b>3 s</b><span>to update</span></div></div>
+<div class="hero" id="hero" style="--ic:#5b8cff"><div class="hero-ic" id="big"></div><div class="hero-tx"><h2>Koi</h2><div class="lead">Every app, one flick away. A springy fan app switcher for your Mac, from the Lumen family.</div><span class="ver" id="v">Version 2.0.0</span></div></div>
+<div class="glance"><div class="gl" style="--ic:#5b8cff"><span class="ri"><svg viewBox="0 0 24 24"><path d="M12 12L6 5M12 12h8M12 12l-6 7"/></svg></span><div><b>8</b><span>wedges per page</span></div></div><div class="gl" style="--ic:#06b6d4"><span class="ri"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9"/><path d="M12 7v5l3 2"/></svg></span><div><b>Zero</b><span>loops while closed</span></div></div><div class="gl" style="--ic:#ff2d87"><span class="ri"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg></span><div><b>3 s</b><span>to update</span></div></div></div>
 <div class="acts"><button class="btn" id="upd">Check for updates</button><button class="btn ghost" id="notes">Release notes</button></div>
-<div class="fine">Made with springs. No emojis, no tracking, no network except the update check.</div>
+<div class="fine">No emojis, no tracking, no network except the update check.</div>
 <script src="spring.js"></script>
 <script>
 const q=new URLSearchParams(location.search),api=window.koiAPI&&window.koiAPI.pop;
-KoiHero(document.getElementById('hero'));document.getElementById('big').innerHTML=KoiMark(84);
+if(q.get('theme')==='light')document.documentElement.classList.remove('dark');
+const hero=document.getElementById('hero');KoiHero(hero,KoiMark('100%',true),'about');document.getElementById('big').innerHTML=KoiMark(80);
 document.getElementById('v').textContent='Version '+(q.get('v')||'2.0.0');
-document.querySelectorAll('.btn').forEach(b=>KoiSpring.jelly(b,1.06));
+document.querySelectorAll('.btn').forEach(b=>KoiSpring.jelly(b,1.04));
 document.getElementById('upd').onclick=()=>api&&api.action('update');
 document.getElementById('notes').onclick=()=>api&&api.action('repo');
 </script></body></html>

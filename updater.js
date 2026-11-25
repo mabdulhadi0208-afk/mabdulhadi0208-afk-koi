@@ -41,7 +41,7 @@ function showCard() {
   popup = new BrowserWindow({ width: w, height: h, x: Math.round(d.x + d.width / 2 - w / 2), y: d.y + 6, frame: false, transparent: true, hasShadow: false, resizable: false, alwaysOnTop: true, skipTaskbar: true, focusable: true, fullscreenable: false, backgroundColor: '#00000000', show: false,
     webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, nodeIntegration: false } });
   popup.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true }); popup.setAlwaysOnTop(true, 'screen-saver');
-  popup.loadFile(path.join(__dirname, 'renderer', 'update.html'));
+  popup.loadFile(path.join(__dirname, 'renderer', 'update.html'), { query: { theme: C.settings().theme || 'dark' } });
   popup.once('ready-to-show', () => { if (!popup || popup.isDestroyed()) return; popup.showInactive(); push(); });
   popup.on('closed', () => (popup = null));
 }

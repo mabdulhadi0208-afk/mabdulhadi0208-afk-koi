@@ -5,7 +5,7 @@ bloom around the cursor in a glass fan: point at a wedge or type a letter, scrol
 
 - Opens instantly: the app list, icons and running dots are cached (icons on disk, keyed by app and version) and refresh in the background
 - Real app icons, running-app dots, apps ranked by what you use most
-- A hero hub in the app's own colour, magnetic lens, one-shot jelly springs, quick actions (New window, Hide, Quit)
+- Lumen's design language: its palette, liquid glass and hero banners; a hub in the app's own colour, magnetic lens, jelly springs, quick actions (New window, Hide, Quit)
 - Dark and light, four sizes, three speeds, glass sounds (off by default)
 - Zero cost while closed: the fan window really hides, nothing loops or polls
 - First launch plays a cinematic intro and a full tutorial (replay any time from the menu-bar icon)

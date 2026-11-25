@@ -144,7 +144,7 @@ function hideNow(){shown=false;clearTimeout(hideT);if(overlay&&!overlay.isDestro
 function toggle(){const t=Date.now();if(t-lastToggle<250)return;lastToggle=t;shown?hideOverlay():showOverlay()}
 function openTour(){
   if(tour&&!tour.isDestroyed()){tour.focus();return}
-  tour=new BrowserWindow({width:1280,height:800,minWidth:900,minHeight:600,titleBarStyle:'hiddenInset',backgroundColor:'#07040e',show:false,
+  tour=new BrowserWindow({width:1280,height:800,minWidth:900,minHeight:600,titleBarStyle:'hiddenInset',backgroundColor:'#0a0c15',show:false,
     webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,autoplayPolicy:'no-user-gesture-required'}});
   tour.once('ready-to-show',()=>tour.show());
   tour.loadFile(path.join(__dirname,'renderer','app.html'),{query:{mode:'tour',v:app.getVersion()}});
@@ -211,14 +211,14 @@ function reg(){
 const winOpts=(w,h,bg)=>({width:w,height:h,titleBarStyle:'hiddenInset',backgroundColor:bg,show:false,webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false}});
 function openSettings(){
   if(settingsWin&&!settingsWin.isDestroyed()){settingsWin.focus();return}
-  settingsWin=new BrowserWindow({...winOpts(600,820,S.theme==='light'?'#fbf4fb':'#0b0714'),minWidth:520,minHeight:560});
+  settingsWin=new BrowserWindow({...winOpts(940,700,S.theme==='light'?'#f5f6fb':'#0a0c15'),minWidth:780,minHeight:560});
   settingsWin.once('ready-to-show',()=>settingsWin.show());
-  settingsWin.loadFile(path.join(__dirname,'renderer','settings.html'),{query:{theme:S.theme}});
+  settingsWin.loadFile(path.join(__dirname,'renderer','settings.html'),{query:{theme:S.theme,v:app.getVersion()}});
   settingsWin.on('closed',()=>{settingsWin=null;reg();sendPop()});
 }
 function openAbout(){
   if(aboutWin&&!aboutWin.isDestroyed()){aboutWin.focus();return}
-  aboutWin=new BrowserWindow({...winOpts(480,580,'#0b0714'),resizable:false,minimizable:false,maximizable:false});
+  aboutWin=new BrowserWindow({...winOpts(560,620,'#0a0c15'),resizable:false,minimizable:false,maximizable:false});
   aboutWin.once('ready-to-show',()=>aboutWin.show());
   aboutWin.loadFile(path.join(__dirname,'renderer','about.html'),{query:{v:app.getVersion(),theme:S.theme}});
   aboutWin.on('closed',()=>{aboutWin=null});

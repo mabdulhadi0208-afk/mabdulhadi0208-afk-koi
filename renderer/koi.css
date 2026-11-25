@@ -1,67 +1,153 @@
-/* Koi 2.0 design layer, shared by the popover, the Hotkeys window, the update card and About.
-   Deep pink is the signature; violet, cyan and amber are its friends. Glass is drawn, never blurred live:
-   gradient fills, a specular rim (a gradient border through a mask), an inner glow, a sheen and coloured shadows.
-   Only transform and opacity animate, and nothing loops. */
+/* Koi 2.0 in Lumen's design language (Lumen 4.0, docs/NOVA.md): the same tokens as ui/ui.css and ui/chrome41.css,
+   the Settings section hero from pages/pages41.css, the chrome popover glass, gem rows and the update-card poster.
+   Shared by the popover, the Hotkeys window, the update card and About.
+   Speed budget, as in Lumen: glass is painted with gradients, rims and coloured shadows (no live blur), only
+   transform and opacity animate, and the hero's dots are the only loop: they pause when the window is hidden
+   or the hero is off screen, and hold still under reduced motion. */
 :root{
-  --pink:#ff2e88;--pink2:#c40f66;--vio:#7a3cff;--cyan:#16c6ff;--amber:#ffad1f;--mint:#1fd49a;
-  --koi:linear-gradient(135deg,#ff6aa8 0%,#ff2e88 32%,#b42cff 70%,#7a3cff 100%);
-  --head:ui-rounded,"SF Pro Rounded","SF Pro Display",-apple-system,system-ui,sans-serif;
-  --bg:#0c0716;--card:linear-gradient(180deg,rgba(255,255,255,.075),rgba(255,255,255,.025));--tx:#f6f0ff;--mut:rgba(236,226,255,.62);
-  --ln:rgba(255,255,255,.08);--chip:rgba(255,255,255,.07);--chip2:rgba(255,255,255,.13);--rimTop:rgba(255,255,255,.14);
-  --hc:#ff2e88;--hc2:#7a3cff
+  --accent:#5b8cff;
+  --accent2:oklch(from var(--accent) calc(l - .02) c calc(h + 40));
+  --accent3:oklch(from var(--accent) calc(l + .04) c calc(h + 95));
+  --nova:linear-gradient(135deg,var(--accent),var(--accent2) 55%,var(--accent3));
+  --c-cyan:oklch(from var(--accent) .74 .16 calc(h - 62));
+  --c-violet:oklch(from var(--accent) .46 .24 calc(h + 28));
+  --c-amber:oklch(from var(--accent) .82 .17 calc(h + 155));
+  --c-pink:oklch(from var(--accent) .6 .25 calc(h + 92));
+  --c-deep:oklch(from var(--accent) .34 .16 calc(h + 10));
+  --grain:radial-gradient(circle,rgba(255,255,255,.22) 1px,transparent 1.6px) 0 0/13px 13px;
+  --rim41:linear-gradient(120deg,var(--c-cyan),rgba(255,255,255,.85) 22%,var(--accent) 45%,var(--c-violet) 66%,var(--c-pink));
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI Variable Text","Segoe UI",Inter,system-ui,sans-serif;
+  --display:ui-rounded,"SF Pro Rounded","Nunito",system-ui,var(--font);
+  --ease:cubic-bezier(.3,1.4,.5,1);--spring:cubic-bezier(.3,1.3,.5,1);
+  /* light (porcelain) */
+  --bg-solid:#f5f6fb;--fg:#141722;--fg2:rgba(20,23,34,.66);--fg3:rgba(20,23,34,.42);--line:rgba(20,24,40,.08);
+  --tint-menu:rgba(250,251,255,.955);--hover:color-mix(in srgb,var(--accent) 10%,rgba(255,255,255,.5));
+  --banner:var(--grain),radial-gradient(55% 120% at 0% 0%,rgba(255,255,255,.3),transparent 60%),radial-gradient(38% 110% at 100% 110%,color-mix(in srgb,var(--c-amber) 75%,transparent),transparent 70%),radial-gradient(40% 120% at 70% -20%,color-mix(in srgb,var(--c-cyan) 80%,transparent),transparent 70%),linear-gradient(118deg,var(--c-violet),var(--accent) 42%,var(--c-pink));
+  --liquid:inset 1.5px 1.5px 0 rgba(255,255,255,.95),inset -1px -1px 0 rgba(255,255,255,.3),inset 0 0 20px color-mix(in srgb,var(--accent) 16%,transparent),inset 2.5px 0 0 -1px rgba(255,60,140,.16),inset -2.5px 0 0 -1px rgba(50,180,255,.2);
+  --sheen:linear-gradient(135deg,rgba(255,255,255,.62),rgba(255,255,255,.1) 32%,transparent 46%,transparent 70%,rgba(255,255,255,.22) 92%);
+  --lg-rim:inset 0 1px 0 rgba(255,255,255,.95),inset 0 -1px 0 rgba(255,255,255,.35),inset 1.5px 0 0 color-mix(in srgb,#ff4f8b 22%,transparent),inset -1.5px 0 0 color-mix(in srgb,#3fd4ff 26%,transparent),inset 0 0 0 1px rgba(255,255,255,.28),inset 0 10px 18px -12px rgba(255,255,255,.9),inset 0 -14px 22px -14px color-mix(in srgb,var(--accent3) 55%,transparent);
+  --lg-drop-lg:0 2px 4px rgba(14,18,40,.08),0 22px 50px -12px color-mix(in srgb,var(--accent) 30%,rgba(14,18,40,.22)),0 50px 110px -30px color-mix(in srgb,var(--accent3) 34%,rgba(14,18,40,.2));
+  --glow-ink:color-mix(in srgb,var(--accent) 70%,var(--fg));
+  color-scheme:light;
 }
-.lt{--bg:#fdf6fb;--card:linear-gradient(180deg,#fff,#fdf3fa);--tx:#24132f;--mut:rgba(36,19,47,.58);--ln:rgba(90,30,90,.09);--chip:rgba(90,30,90,.06);--chip2:rgba(90,30,90,.12);--rimTop:#fff}
+.dark{
+  --bg-solid:#0a0c15;--fg:#f0f1f8;--fg2:rgba(240,241,248,.7);--fg3:rgba(240,241,248,.44);--line:rgba(255,255,255,.1);
+  --tint-menu:color-mix(in srgb,var(--accent) 6%,rgba(16,19,32,.955));--hover:color-mix(in srgb,var(--accent) 20%,rgba(255,255,255,.04));
+  --banner:var(--grain),radial-gradient(55% 120% at 0% 0%,rgba(255,255,255,.18),transparent 60%),radial-gradient(38% 110% at 100% 110%,color-mix(in srgb,var(--c-amber) 60%,transparent),transparent 70%),radial-gradient(40% 120% at 70% -20%,color-mix(in srgb,var(--c-cyan) 70%,transparent),transparent 70%),linear-gradient(118deg,var(--c-deep),color-mix(in srgb,var(--accent) 85%,#000) 42%,color-mix(in srgb,var(--c-pink) 82%,#000));
+  --liquid:inset 1.5px 1.5px 0 rgba(255,255,255,.3),inset -1px -1px 0 rgba(255,255,255,.06),inset 0 0 22px color-mix(in srgb,var(--accent) 22%,transparent),inset 2.5px 0 0 -1px rgba(255,80,150,.24),inset -2.5px 0 0 -1px rgba(60,190,255,.26);
+  --sheen:linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.03) 32%,transparent 46%,transparent 70%,rgba(255,255,255,.07) 92%);
+  --lg-rim:inset 0 1px 0 rgba(255,255,255,.32),inset 0 -1px 0 rgba(255,255,255,.08),inset 1.5px 0 0 color-mix(in srgb,#ff4f8b 30%,transparent),inset -1.5px 0 0 color-mix(in srgb,#3fd4ff 32%,transparent),inset 0 0 0 1px rgba(255,255,255,.08),inset 0 10px 18px -12px rgba(255,255,255,.28),inset 0 -16px 26px -14px color-mix(in srgb,var(--accent3) 60%,transparent);
+  --lg-drop-lg:0 2px 6px rgba(0,0,0,.45),0 26px 60px -14px color-mix(in srgb,var(--accent) 34%,rgba(0,0,0,.6)),0 60px 120px -30px color-mix(in srgb,var(--accent3) 36%,transparent);
+  color-scheme:dark;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-html,body{-webkit-font-smoothing:antialiased;user-select:none;cursor:default;font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,sans-serif;color:var(--tx)}
-kbd,.kc{display:inline-grid;place-items:center;min-width:26px;height:26px;padding:0 7px;border-radius:8px;font:800 13px/1 ui-rounded,-apple-system,system-ui,sans-serif;color:#241330;
-  background:linear-gradient(180deg,#fff,#ece2f3);box-shadow:inset 0 -3px 0 rgba(80,20,90,.18),inset 0 1px 0 #fff,0 3px 8px -3px rgba(20,0,40,.5)}
+html,body{-webkit-font-smoothing:antialiased;user-select:none;cursor:default;font:13px/1.45 var(--font);color:var(--fg)}
+kbd{display:inline-grid;place-items:center;min-width:24px;height:24px;padding:0 7px;border-radius:8px;font:750 12px/1 var(--display);color:var(--fg);
+  background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(255,255,255,.6));box-shadow:inset 0 1px 0 #fff,inset 0 0 0 1px var(--line),inset 0 -2px 0 rgba(20,24,40,.12),0 2px 6px -2px rgba(14,18,40,.2)}
+.dark kbd{background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.06));box-shadow:inset 0 1px 0 rgba(255,255,255,.2),inset 0 0 0 1px rgba(255,255,255,.1),inset 0 -2px 0 rgba(0,0,0,.3)}
+.on-color kbd,.gem kbd{color:#fff;background:rgba(255,255,255,.2);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),inset 0 0 0 1px rgba(255,255,255,.3),0 4px 10px -4px rgba(0,0,0,.3)}
+.grad{background:var(--nova);-webkit-background-clip:text;background-clip:text;color:transparent}
 
-/* ---- the hero banner: gradient wash, light pool, beam, giant faded watermark, glossy tile, huge title ---- */
-.hero{position:relative;isolation:isolate;overflow:hidden;border-radius:28px;color:#fff;padding:22px 22px 20px;
-  box-shadow:0 26px 50px -24px var(--hc),0 14px 30px -18px var(--hc2),inset 0 1px 0 rgba(255,255,255,.3)}
-.hero>.dc{position:absolute;inset:0;z-index:-1;border-radius:inherit;overflow:hidden;pointer-events:none}
-.hero>.dc>*{position:absolute;display:block}
-.hero .w{inset:0;background:radial-gradient(110% 150% at 0% 0%,color-mix(in oklab,var(--hc) 95%,transparent),transparent 60%),radial-gradient(100% 140% at 100% 110%,color-mix(in oklab,var(--hc2) 90%,transparent),transparent 62%),linear-gradient(160deg,color-mix(in oklab,var(--hc) 50%,#120626),color-mix(in oklab,var(--hc2) 45%,#08051a))}
-.hero .p{left:-10%;top:-75%;width:80%;height:150%;border-radius:50%;background:radial-gradient(closest-side,rgba(255,255,255,.34),color-mix(in oklab,var(--hc) 35%,transparent) 55%,transparent)}
-.hero .b{left:-20%;right:-20%;top:0;height:100%;background:conic-gradient(from 180deg at 40% -40%,transparent 166deg,rgba(255,255,255,.1) 176deg,color-mix(in oklab,var(--hc) 30%,transparent) 182deg,transparent 196deg)}
-.hero .h{left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.6) 30%,color-mix(in oklab,var(--hc) 60%,#fff) 60%,transparent);box-shadow:0 0 14px 2px color-mix(in oklab,var(--hc) 70%,transparent)}
-.hero .m{right:-12%;top:50%;height:200%;aspect-ratio:1;translate:0 -50%;rotate:-14deg;opacity:.16;animation:mark 1.1s cubic-bezier(.3,1.45,.5,1) .06s both}
-.hero .m svg{width:100%;height:100%;fill:none;stroke:#fff;stroke-width:1.3;stroke-linecap:round;stroke-linejoin:round}
-.hero .r{inset:0;border-radius:inherit;padding:1.2px;background:linear-gradient(140deg,rgba(255,255,255,.8),color-mix(in oklab,var(--hc) 70%,transparent) 24%,rgba(255,255,255,.04) 50%,color-mix(in oklab,var(--hc2) 70%,transparent) 84%,rgba(255,255,255,.35));
+/* ---- Lumen's liquid-glass panel: menu tint, colour body, liquid edge, gradient rim, colour shadows ---- */
+.glass{position:relative;isolation:isolate;background-color:var(--tint-menu);
+  background-image:radial-gradient(70% 40% at 0% 0%,rgba(255,255,255,.4),transparent 70%),linear-gradient(180deg,color-mix(in srgb,var(--accent) 7%,transparent),color-mix(in srgb,var(--c-violet) 14%,transparent));
+  box-shadow:var(--liquid),var(--lg-rim),0 0 0 1px color-mix(in srgb,var(--accent) 26%,transparent),0 0 0 8px color-mix(in srgb,var(--accent) 8%,transparent),var(--lg-drop-lg),0 30px 110px -20px color-mix(in srgb,var(--accent) 45%,transparent)}
+.dark .glass{background-image:linear-gradient(180deg,color-mix(in srgb,var(--accent) 10%,transparent),color-mix(in srgb,var(--c-deep) 40%,transparent))}
+.glass::before,.rim::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:2px;background:var(--rim41);opacity:.7;pointer-events:none;z-index:9;
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
-.hero .s{inset:0;background:linear-gradient(115deg,transparent 38%,rgba(255,255,255,.26) 48%,transparent 58%);transform:translateX(-110%);animation:sheen 1.1s cubic-bezier(.3,.6,.3,1) .25s both}
-@keyframes sheen{to{transform:translateX(110%)}}
-@keyframes mark{from{opacity:0;rotate:-36deg;scale:.7}}
-.tile{flex:none;width:62px;height:62px;border-radius:20px;display:grid;place-items:center;position:relative;
-  background:radial-gradient(circle at 32% 18%,rgba(255,255,255,.65),transparent 46%),linear-gradient(145deg,color-mix(in oklab,var(--hc) 55%,#fff),var(--hc) 50%,color-mix(in oklab,var(--hc) 62%,#000));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -7px 12px -6px rgba(0,0,40,.45),0 0 0 6px color-mix(in oklab,var(--hc) 22%,transparent),0 16px 34px -10px var(--hc);animation:tile .85s cubic-bezier(.3,1.7,.5,1) .08s both}
-.tile svg{width:34px;height:34px;filter:drop-shadow(0 2px 3px rgba(0,0,40,.35))}
-@keyframes tile{from{opacity:0;transform:scale(.4) rotate(-18deg)}}
-.eye{font:800 10.5px/1 var(--head);letter-spacing:.18em;text-transform:uppercase;color:color-mix(in oklab,var(--hc) 40%,#fff)}
-.title{font:900 40px/1 var(--head);letter-spacing:-.055em;background:linear-gradient(100deg,#fff 40%,color-mix(in oklab,var(--hc) 45%,#fff));-webkit-background-clip:text;background-clip:text;color:transparent;padding-bottom:3px}
-.sub{font:600 12.5px/1.35 -apple-system,system-ui,sans-serif;color:rgba(255,255,255,.76)}
-@keyframes heroIn{from{opacity:0;transform:translateY(-10px) scale(.96)}}
-.hero.in{animation:heroIn .75s cubic-bezier(.3,1.45,.5,1) both}
-
-/* ---- glass slab rows, pills, toggles, segmented controls, buttons ---- */
-.slab{border-radius:18px;background:var(--card);box-shadow:inset 0 0 0 1px var(--ln),inset 0 1px 0 var(--rimTop),0 8px 18px -14px rgba(0,0,0,.6)}
-.ico{flex:none;width:34px;height:34px;border-radius:12px;display:grid;place-items:center;color:#fff;
-  background:radial-gradient(circle at 34% 20%,rgba(255,255,255,.55),transparent 46%),linear-gradient(135deg,color-mix(in oklab,var(--c,var(--pink)) 70%,#fff),var(--c,var(--pink)) 60%,color-mix(in oklab,var(--c,var(--pink)) 70%,#000));
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 6px 14px -6px var(--c,var(--pink))}
-.ico svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
-.btn{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:10px 18px;border-radius:14px;font:800 13.5px/1 var(--head);letter-spacing:-.01em;color:#fff;
-  background:radial-gradient(90% 140% at 30% -20%,rgba(255,255,255,.5),transparent 55%),var(--koi);
-  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -8px 14px -8px rgba(60,0,40,.5),0 0 0 4px rgba(255,46,136,.16),0 14px 28px -12px var(--pink);text-shadow:0 1px 2px rgba(40,0,30,.3);will-change:transform}
-.btn.ghost{background:var(--chip);color:var(--tx);box-shadow:inset 0 0 0 1px var(--ln),inset 0 1px 0 var(--rimTop);text-shadow:none}
-.btn.onhero{background:rgba(255,255,255,.14);color:#fff;box-shadow:inset 0 0 0 1px rgba(255,255,255,.22),inset 0 1px 0 rgba(255,255,255,.25)}
-.tg{width:48px;height:28px;border-radius:99px;background:var(--chip2);position:relative;flex:none;box-shadow:inset 0 1px 3px rgba(0,0,0,.25)}
-.tg:before{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(90% 140% at 30% -20%,rgba(255,255,255,.45),transparent 55%),var(--koi);opacity:0;transition:opacity .2s;box-shadow:0 0 0 4px rgba(255,46,136,.16)}
+/* the gem: a solid jewel of colour (the selected row, primary buttons, colour banners) */
+.gem{color:#fff;background:radial-gradient(60% 140% at 0% 0%,rgba(255,255,255,.3),transparent 60%),var(--banner);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 0 4px color-mix(in srgb,var(--accent) 14%,transparent),0 14px 30px -12px color-mix(in srgb,var(--accent) 90%,transparent)}
+.dark .gem{background:radial-gradient(60% 140% at 0% 0%,rgba(255,255,255,.2),transparent 60%),var(--banner);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 0 0 4px color-mix(in srgb,var(--accent) 18%,transparent),0 14px 30px -12px color-mix(in srgb,var(--accent) 95%,transparent)}
+/* the colour banner that leads a chrome popover */
+.chero{position:relative;overflow:hidden;isolation:isolate;border-radius:24px;color:#fff;background:var(--banner);
+  box-shadow:inset 1.5px 1.5px 0 rgba(255,255,255,.7),inset 0 0 26px rgba(255,255,255,.18),inset 0 -16px 30px -18px rgba(0,0,0,.3),0 18px 40px -18px color-mix(in srgb,var(--accent) 90%,transparent)}
+.chero .hart{position:absolute;right:-30px;top:50%;width:190px;height:190px;margin-top:-95px;color:#fff;opacity:.22;transform:rotate(-12deg);pointer-events:none;z-index:-1}
+.chero .hart svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:1.2;stroke-linecap:round;stroke-linejoin:round}
+.chero .ic{background:rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.8),inset 0 0 0 1px rgba(255,255,255,.3),0 10px 22px -8px rgba(0,0,0,.35);color:#fff}
+/* small icon tiles (Lumen's .ri / nav icons): a little gem in the row's own colour */
+.ri{flex:none;width:36px;height:36px;border-radius:13px;display:grid;place-items:center;color:#fff;
+  background:linear-gradient(180deg,rgba(255,255,255,.4),rgba(255,255,255,0) 55%),linear-gradient(145deg,oklch(from var(--ic,var(--accent)) calc(l + .1) c h),var(--ic,var(--accent)));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 4px 14px color-mix(in srgb,var(--ic,var(--accent)) 50%,transparent)}
+.ri svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* buttons: the nova pill, and a glass one */
+.btn{all:unset;box-sizing:border-box;position:relative;overflow:hidden;isolation:isolate;cursor:default;display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 22px;border-radius:999px;font:800 13.5px/1 var(--display);letter-spacing:-.01em;color:#fff;white-space:nowrap;
+  background:radial-gradient(70% 90% at 30% 0%,rgba(255,255,255,.35),transparent 70%),var(--nova);text-shadow:0 1px 2px rgba(0,0,0,.18);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.6),inset 0 -1px 0 rgba(255,255,255,.2),inset 0 -8px 14px -6px rgba(0,0,0,.2),0 0 0 4px color-mix(in srgb,var(--accent) 16%,transparent),0 10px 24px -6px color-mix(in srgb,var(--accent) 85%,transparent);will-change:transform}
+.btn.ghost{color:var(--fg);text-shadow:none;background:linear-gradient(180deg,rgba(255,255,255,.7),rgba(255,255,255,.35));box-shadow:inset 0 1px 0 #fff,inset 0 0 0 1px var(--line),0 4px 12px -6px rgba(14,18,40,.2)}
+.dark .btn.ghost{background:linear-gradient(180deg,rgba(255,255,255,.1),rgba(255,255,255,.04));box-shadow:inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.08)}
+.btn.onink{color:#fff;text-shadow:none;background:rgba(255,255,255,.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),inset 0 0 0 1px rgba(255,255,255,.18)}
+/* switch and segmented control: the thumb is a gem */
+.tg{width:46px;height:28px;border-radius:99px;position:relative;flex:none;background:color-mix(in srgb,var(--fg) 12%,transparent);box-shadow:inset 0 1px 2px rgba(0,0,0,.18),inset 0 0 0 .5px var(--line)}
+.tg:before{content:"";position:absolute;inset:0;border-radius:inherit;background:radial-gradient(70% 90% at 30% 0%,rgba(255,255,255,.35),transparent 70%),var(--nova);opacity:0;transition:opacity .2s;box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 16%,transparent),0 6px 14px -4px color-mix(in srgb,var(--accent) 70%,transparent)}
 .tg.on:before{opacity:1}
-.tg i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:99px;background:linear-gradient(180deg,#fff,#f1e9f6);box-shadow:0 2px 6px rgba(0,0,0,.3),inset 0 -1px 0 rgba(0,0,0,.08);will-change:transform}
-.seg{position:relative;display:flex;background:var(--chip);border-radius:14px;padding:3px;box-shadow:inset 0 1px 2px rgba(0,0,0,.18)}
-.seg .th{position:absolute;top:3px;bottom:3px;left:0;width:10px;border-radius:11px;background:radial-gradient(90% 140% at 30% -20%,rgba(255,255,255,.5),transparent 55%),var(--koi);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 8px 18px -8px var(--pink);will-change:transform}
-.seg button{all:unset;box-sizing:border-box;flex:1;text-align:center;position:relative;z-index:1;padding:8px 0;font:750 13px/1 var(--head);cursor:pointer;color:var(--mut);transition:opacity .2s}
+.tg i{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:99px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,.25),inset 0 -1px 0 rgba(0,0,0,.06);will-change:transform}
+.seg{position:relative;display:flex;border-radius:999px;padding:3px;background:color-mix(in srgb,var(--fg) 6%,transparent);box-shadow:inset 0 1px 2px rgba(0,0,0,.12),inset 0 0 0 .5px var(--line)}
+.seg .th{position:absolute;top:3px;bottom:3px;left:0;width:10px;border-radius:999px;background:radial-gradient(60% 140% at 0% 0%,rgba(255,255,255,.3),transparent 60%),var(--banner);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 6px 16px -6px color-mix(in srgb,var(--accent) 90%,transparent);will-change:transform}
+.seg button{all:unset;box-sizing:border-box;flex:1;text-align:center;position:relative;z-index:1;padding:8px 0;font:750 12.5px/1 var(--display);cursor:default;color:var(--fg2)}
 .seg button.on{color:#fff}
-.lbl{display:flex;align-items:center;gap:10px;font:900 19px/1 var(--head);letter-spacing:-.04em;padding:18px 6px 10px}
-.lbl:after{content:"";flex:none;width:48px;height:3px;border-radius:3px;background:var(--koi);box-shadow:0 0 10px var(--pink)}
-@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+.sec{display:flex;align-items:center;gap:8px;font:800 11px var(--display);letter-spacing:.14em;text-transform:uppercase;color:var(--glow-ink);padding:16px 10px 8px}
+.sec:before{content:"";width:8px;height:8px;border-radius:3px;background:linear-gradient(135deg,var(--c-cyan),var(--c-violet));box-shadow:0 0 10px var(--c-cyan)}
+
+/* ---- the Settings section hero (pages/pages41.css): ink, the section colour, four light pools, grain, dots,
+   a rim of light, a giant three-layer glyph, the glowing icon tile, huge white type ---- */
+.hero{--ic2:oklch(from var(--ic) l c calc(h + 62));--ic3:oklch(from var(--ic) calc(l + .12) calc(c * .8) calc(h - 30));
+  position:relative;isolation:isolate;overflow:hidden;contain:paint;display:flex;align-items:center;gap:28px;color:#fff;border-radius:38px;padding:40px 40px 42px;min-height:230px;
+  background:linear-gradient(100deg,color-mix(in srgb,var(--ic) 92%,transparent) 0%,color-mix(in srgb,var(--ic) 58%,transparent) 26%,color-mix(in srgb,var(--ic) 16%,transparent) 56%,transparent 78%),
+    radial-gradient(120% 140% at 100% 0%,color-mix(in srgb,var(--ic2) 30%,transparent),transparent 55%),linear-gradient(160deg,color-mix(in srgb,var(--ic) 34%,#12152c),#0a0c1c 70%,#070814);
+  box-shadow:inset 0 1.5px 0 rgba(255,255,255,.3),inset 0 0 0 1px rgba(255,255,255,.1),inset 0 -60px 100px -60px color-mix(in srgb,var(--ic2) 70%,transparent),0 2px 4px rgba(0,0,0,.4),0 30px 70px -24px rgba(0,0,0,.7),0 50px 90px -40px color-mix(in srgb,var(--ic) 60%,transparent)}
+.hero>*{position:relative;z-index:3}
+.hero>.hb{position:absolute;inset:0;z-index:0;border-radius:inherit;pointer-events:none}
+.hero>.hb>*{position:absolute;display:block}
+.hero::before{content:"";position:absolute;inset:0;border-radius:inherit;padding:2px;z-index:5;pointer-events:none;
+  background:linear-gradient(125deg,#fff,color-mix(in srgb,var(--ic3) 80%,#fff) 12%,rgba(255,255,255,.08) 34%,transparent 60%,color-mix(in srgb,var(--ic2) 70%,transparent) 86%,color-mix(in srgb,var(--ic2) 40%,#fff));
+  -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;mask:linear-gradient(#000 0 0) content-box exclude,linear-gradient(#000 0 0)}
+.hero::after{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;border-radius:inherit;background:linear-gradient(105deg,transparent 38%,rgba(255,255,255,.3) 50%,transparent 62%);transform:translateX(-110%);opacity:0}
+.hero.enter::after{animation:hsweep 1.4s .4s ease-out both}
+@keyframes hsweep{0%{transform:translateX(-110%);opacity:1}100%{transform:translateX(110%);opacity:1}}
+.hb .orb{border-radius:50%}
+.hb .a{width:520px;height:520px;left:-200px;top:50%;margin-top:-260px;background:radial-gradient(closest-side,color-mix(in srgb,var(--ic3) 75%,transparent),color-mix(in srgb,var(--ic) 30%,transparent) 50%,transparent)}
+.hb .b{width:640px;height:400px;right:-150px;bottom:-250px;background:radial-gradient(closest-side,color-mix(in srgb,var(--ic2) 80%,transparent),color-mix(in srgb,var(--ic2) 24%,transparent) 55%,transparent)}
+.hb .c{width:420px;height:260px;left:36%;top:-180px;background:radial-gradient(closest-side,color-mix(in srgb,var(--ic) 60%,transparent),transparent)}
+.hb .d{width:260px;height:260px;right:24%;bottom:-140px;background:radial-gradient(closest-side,rgba(255,255,255,.22),transparent)}
+.hero.enter .orb{animation:lightup 1.4s var(--ease) both}.hero.enter .b{animation-delay:.12s}.hero.enter .c{animation-delay:.22s}.hero.enter .d{animation-delay:.3s}
+@keyframes lightup{from{opacity:0;transform:scale(.7)}}
+.hb .grain{inset:0;opacity:.2;border-radius:inherit;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .5 0 0 0 0 .5 0 0 0 1.4 -.3'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E") 0 0/160px 160px}
+/* the giant glyph: a broad soft stroke, a deep shadow copy and the crisp lit outline */
+.hb .art{z-index:1;right:-60px;top:50%;width:340px;height:340px;margin-top:-170px;color:rgba(255,255,255,.3);transform:rotate(-12deg)}
+.hb .art svg{width:100%;height:100%;fill:none;stroke:currentColor;stroke-width:.6;stroke-linecap:round;stroke-linejoin:round}
+.hb .art.glow{color:color-mix(in srgb,var(--ic3) 22%,transparent)}.hb .art.glow svg{stroke-width:2.2}
+.hb .art.depth{translate:16px 20px;color:rgba(0,0,0,.4)}.hb .art.depth svg{stroke-width:.9}
+.hero.enter .art{animation:glyphdrift 1.5s .08s var(--spring) both}.hero.enter .art.depth{animation-delay:.14s}.hero.enter .art.glow{animation-delay:.02s}
+@keyframes glyphdrift{from{opacity:0;transform:translate(110px,30px) rotate(-30deg) scale(.82)}to{opacity:1;transform:rotate(-12deg)}}
+/* tiny drifting dots (pre-painted layers; transform and opacity only; paused when unseen) */
+.hb .dots{inset:0;z-index:0;overflow:hidden;border-radius:inherit;--hd1:color-mix(in srgb,var(--ic3) 65%,#fff);--hd2:color-mix(in srgb,var(--ic2) 50%,#fff)}
+.hb .dots>i{position:absolute;top:-30px;bottom:-30px;left:36%;right:-30px;will-change:transform,opacity;background-repeat:repeat}
+.hb .dots .hd1{animation:hd-a 16s ease-in-out infinite alternate}
+.hb .dots .hd3{animation:hd-c 11s ease-in-out infinite alternate}
+.hb .dots::before{content:"";position:absolute;inset:0;right:64%;opacity:.5;background:radial-gradient(circle,color-mix(in srgb,var(--ic3) 60%,#fff) 1px,transparent 1.8px) 0 0/34px 30px,radial-gradient(circle,rgba(255,255,255,.8) 1.2px,transparent 2px) 17px 13px/97px 83px;-webkit-mask:linear-gradient(90deg,transparent,#000 60%)}
+.hb .dots .cons{position:absolute;inset:0;background:center/cover no-repeat;opacity:.9;-webkit-mask:linear-gradient(90deg,transparent 38%,#000 70%)}
+@keyframes hd-a{0%{transform:translate3d(0,0,0);opacity:.5}50%{opacity:.9}100%{transform:translate3d(-28px,-16px,0);opacity:.6}}
+@keyframes hd-c{0%{transform:translate3d(0,6px,0);opacity:.3}45%{opacity:1}100%{transform:translate3d(-14px,-12px,0);opacity:.5}}
+.hero.dots-off .dots>i,.lm-hidden .hero .dots>i{animation-play-state:paused}
+.hb .glint{left:30px;right:30px;top:0;height:2px;z-index:6;overflow:hidden}
+.hb .glint:before{content:"";position:absolute;top:0;bottom:0;left:0;width:22%;border-radius:2px;opacity:0;transform:translateX(-110%);background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--ic3) 40%,#fff),#fff,transparent)}
+.hero.enter .glint:before{animation:rimglint 2.6s 1s cubic-bezier(.4,0,.2,1) both}
+@keyframes rimglint{0%{transform:translateX(-110%);opacity:0}12%{opacity:1}85%{opacity:1}100%{transform:translateX(460%);opacity:0}}
+/* the icon tile: frosted white glass on a lit plinth of colour */
+.hero-ic{flex:none;width:96px;height:96px;border-radius:30px;display:grid;place-items:center;color:#fff;position:relative;
+  background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,.08) 50%,rgba(255,255,255,.16)),linear-gradient(145deg,var(--ic3),var(--ic) 55%,color-mix(in srgb,var(--ic) 60%,black));
+  box-shadow:inset 0 2px 0 rgba(255,255,255,.85),inset 0 0 0 1px rgba(255,255,255,.4),inset 0 -8px 16px rgba(0,0,0,.2),0 0 0 10px rgba(255,255,255,.07),0 0 0 22px rgba(255,255,255,.04),0 26px 50px rgba(0,0,0,.45),0 0 90px color-mix(in srgb,var(--ic3) 80%,transparent)}
+.hero-ic svg{width:44px;height:44px;fill:none;stroke:#fff;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.hero-ic svg[fill]{stroke:none}
+.hero.enter .hero-ic{animation:tilein .9s var(--spring) .1s both}
+@keyframes tilein{from{opacity:0;transform:scale(.5) rotate(-14deg)}}
+.hero-tx{flex:1;min-width:0}
+.hero.enter .hero-tx{animation:herotx .9s var(--spring) .1s both}
+@keyframes herotx{from{opacity:0;transform:translateY(16px)}}
+.hero-eye{display:flex;align-items:center;gap:12px;margin:0 0 12px;font:800 11.5px/1 var(--display);letter-spacing:.22em;text-transform:uppercase;color:color-mix(in srgb,var(--ic3) 50%,#fff)}
+.hero-eye i{width:40px;height:2px;border-radius:2px;background:linear-gradient(90deg,#fff,transparent)}
+.hero-eye b{letter-spacing:.08em;padding:6px 11px;border-radius:999px;color:#fff;background:rgba(255,255,255,.14);box-shadow:inset 0 1px 0 rgba(255,255,255,.3),inset 0 0 0 1px rgba(255,255,255,.18);font-variant-numeric:tabular-nums}
+.hero h2{margin:0 0 10px;padding:0 0 6px;font:900 64px/.96 var(--display);letter-spacing:-.058em;background:linear-gradient(172deg,#fff 40%,color-mix(in srgb,var(--ic3) 45%,#fff) 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero .lead{max-width:460px;color:rgba(255,255,255,.8);font-size:15px;line-height:1.5;font-weight:500}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.hb .dots>i{opacity:.7}}

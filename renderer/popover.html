@@ -1,123 +1,124 @@
-<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><title>Koi</title>
+<!DOCTYPE html><html lang="en" class="dark"><head><meta charset="utf-8"><title>Koi</title>
 <link rel="stylesheet" href="koi.css">
 <style>
+/* Koi's menu-bar panel as a Lumen chrome popover (ui/chrome41.css): liquid glass with a spectral rim, a full-bleed
+   colour banner on top, tall rows with gem icon tiles, the hovered row a soft wash, primary actions as gems. */
 html,body{background:transparent;overflow:hidden}
-#wrap{position:absolute;left:12px;top:6px;width:348px}
-#panel{position:relative;border-radius:32px;padding:12px;opacity:0;will-change:transform,opacity;overflow:hidden;isolation:isolate;
-  background:radial-gradient(90% 34% at 0% 0%,rgba(255,46,136,.24),transparent 70%),radial-gradient(90% 34% at 100% 100%,rgba(122,60,255,.24),transparent 70%),linear-gradient(180deg,#1b0f2c,#0c0716);
-  box-shadow:0 34px 70px -18px rgba(8,0,20,.75),0 18px 40px -22px var(--pink),inset 0 1px 0 rgba(255,255,255,.14),inset 0 0 0 1px rgba(255,255,255,.07)}
-.lt #panel{background:radial-gradient(90% 34% at 0% 0%,rgba(255,46,136,.14),transparent 70%),radial-gradient(90% 34% at 100% 100%,rgba(122,60,255,.12),transparent 70%),linear-gradient(180deg,#fffafd,#fbf1f8);
-  box-shadow:0 34px 70px -18px rgba(90,20,80,.42),0 18px 40px -22px var(--pink),inset 0 1px 0 #fff,inset 0 0 0 1px rgba(120,40,120,.1)}
+#wrap{position:absolute;left:14px;top:8px;width:344px}
+#panel{border-radius:30px;padding:10px;opacity:0;will-change:transform,opacity}
 .it{opacity:0}
-#panel.on .it{opacity:1;animation:rin .62s cubic-bezier(.3,1.55,.5,1) backwards}
-@keyframes rin{0%{opacity:0;transform:translateY(12px) scale(.95)}100%{opacity:1;transform:none}}
-#hd{display:grid;grid-template-columns:auto 1fr auto;column-gap:14px;align-items:center;min-height:112px;--hc:#ff2e88;--hc2:#7a3cff}
-#hd .tx{display:flex;flex-direction:column;gap:6px;min-width:0}#hd .sub{white-space:nowrap}
-#hd .title{font-size:46px}
-.pill{align-self:start;font:800 10.5px/1 var(--head);letter-spacing:.04em;padding:6px 10px;border-radius:99px;background:rgba(255,255,255,.16);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22);display:flex;align-items:center;gap:6px;white-space:nowrap;color:#fff}
-.pill i{width:7px;height:7px;border-radius:50%;background:#5dffb7;box-shadow:0 0 8px #5dffb7}
-.pill.up i{background:var(--cyan);box-shadow:0 0 8px var(--cyan)}.pill.err i{background:var(--amber);box-shadow:0 0 8px var(--amber)}
-#open{width:100%;margin-top:10px;min-height:60px;border-radius:22px;font-size:17px;justify-content:flex-start;padding:0 14px 0 16px}
-#open .ki{margin-left:auto;display:flex;gap:5px}
-#open svg{width:22px;height:22px;fill:#fff}
-#open .sw{position:absolute;inset:0;border-radius:inherit;overflow:hidden;pointer-events:none}
-#open .sw:after{content:"";position:absolute;inset:0;background:linear-gradient(110deg,transparent 30%,rgba(255,255,255,.38) 48%,transparent 66%);transform:translateX(-120%)}
-#panel.on #open .sw:after{animation:sheen 1s cubic-bezier(.3,.6,.3,1) .35s both}
-#open{position:relative}
-#upb{display:none;margin-top:10px;padding:14px 14px 14px;border-radius:24px;--hc:#1fd49a;--hc2:#1690ff;grid-template-columns:auto 1fr auto;column-gap:12px;align-items:center}
-#upb.show{display:grid}
-#upb .ring{width:52px;height:52px;position:relative;display:grid;place-items:center}
-#upb .ring svg{position:absolute;inset:0;transform:rotate(-90deg)}
-#upb .ring b{font:900 12px/1 var(--head);color:#fff}
-#upb .ut{font:900 18px/1.05 var(--head);letter-spacing:-.035em}
-#upb small{display:block;margin-top:4px;color:rgba(255,255,255,.78);font-size:11.5px;font-weight:600}
-#upb .btn{padding:9px 13px;font-size:12.5px;border-radius:12px;background:radial-gradient(90% 140% at 30% -20%,rgba(255,255,255,.5),transparent 55%),linear-gradient(135deg,#1fd49a,#1690ff);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 0 0 4px rgba(31,212,154,.18),0 12px 22px -10px #1fd49a}
-.sg{display:flex;align-items:center;gap:10px;margin-bottom:8px}.sg>span{font:800 12px/1 var(--head);color:var(--mut);width:52px;flex:none;padding-left:6px;letter-spacing:.02em}.sg .seg{flex:1}
-.row{display:flex;align-items:center;gap:12px;min-height:46px;margin-bottom:6px;padding:7px 10px 7px 8px;cursor:pointer;font:750 14px/1.1 var(--head);letter-spacing:-.01em;will-change:transform}
-.row .r{margin-left:auto;color:var(--mut);font:750 12px/1 var(--head);display:flex;gap:4px}
-.row .r kbd{min-width:22px;height:22px;font-size:11px;padding:0 5px;border-radius:7px}
-.row .tg{margin-left:auto}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.grid2 .row{margin:0;min-height:48px;font-size:13px}
-.row.dg{--c:#ff3b5c}
-.ft{display:flex;justify-content:space-between;align-items:center;font:700 11px/1 var(--head);color:var(--mut);padding:10px 8px 4px;letter-spacing:.02em}
-.ft a{color:var(--mut);text-decoration:none;cursor:pointer}.ft a:hover{color:var(--tx)}
+#panel.on .it{opacity:1;animation:rin .6s var(--spring) backwards}
+@keyframes rin{from{opacity:0;transform:translateY(10px) scale(.96)}}
+#hd{display:grid;grid-template-columns:auto 1fr auto;column-gap:14px;align-items:center;padding:18px 16px;min-height:104px;margin:-2px -2px 0}
+#hd .ic{width:58px;height:58px;border-radius:19px;display:grid;place-items:center}
+#hd h3{font:850 34px/1 var(--display);letter-spacing:-.045em;color:#fff;text-shadow:0 2px 10px rgba(0,0,0,.18)}
+#hd .sub{font:600 12px/1.3 var(--font);color:rgba(255,255,255,.88);margin-top:5px;white-space:nowrap}
+.pill{align-self:start;display:flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font:800 10.5px/1 var(--display);letter-spacing:.04em;color:#fff;background:rgba(255,255,255,.22);box-shadow:inset 0 1px 0 rgba(255,255,255,.6);white-space:nowrap}
+.pill i{width:6px;height:6px;border-radius:50%;background:#7dffc4;box-shadow:0 0 8px #7dffc4}
+.pill.up i{background:#fff;box-shadow:0 0 8px #fff}.pill.err i{background:#ffd08a;box-shadow:0 0 8px #ffd08a}
+.res{display:flex;align-items:center;gap:13px;height:52px;border-radius:18px;padding:0 12px 0 8px;font:700 14px/1.1 var(--display);letter-spacing:-.01em;color:var(--fg);will-change:transform}
+.res:hover{background:var(--hover)}
+.res .r{margin-left:auto;display:flex;gap:4px;color:var(--fg3);font:700 12px var(--display)}
+.res .tg{margin-left:auto}
+#open{margin-top:10px;height:60px;border-radius:21px;font-size:16px;color:#fff}
+#open .ri{width:42px;height:42px;border-radius:15px;background:rgba(255,255,255,.24);box-shadow:inset 0 1px 0 rgba(255,255,255,.7),inset 0 0 0 1px rgba(255,255,255,.3),0 6px 14px -4px rgba(0,0,0,.3)}
+#open .r{color:#fff}
+#open:hover{background:radial-gradient(60% 140% at 0% 0%,rgba(255,255,255,.3),transparent 60%),var(--banner)}
+/* the update block: a little Lumen update card */
+#upb{display:none;align-items:center;gap:12px;margin-top:10px;padding:12px 12px 12px 10px;border-radius:22px}
+#upb.show{display:flex}
+#upb .ring{position:relative;width:50px;height:50px;flex:none;display:grid;place-items:center;border-radius:16px;isolation:isolate}
+#upb .ring:before{content:"";position:absolute;inset:6px;border-radius:14px;background:var(--nova);opacity:.55;z-index:-1;box-shadow:0 0 24px var(--accent)}
+#upb .ring svg{position:absolute;inset:-3px;width:56px;height:56px;transform:rotate(-90deg)}
+#upb .ring b{font:850 11px/1 var(--display);color:#fff;font-variant-numeric:tabular-nums}
+#upb .kick{font:800 9.5px/1 var(--display);letter-spacing:.22em;text-transform:uppercase;color:color-mix(in srgb,var(--accent) 78%,var(--fg2));margin-bottom:4px}
+#upb .ut{font:800 16px/1.1 var(--display);letter-spacing:-.03em}
+#upb small{display:block;margin-top:2px;color:var(--fg2);font-size:11.5px}
+#upb .btn{height:34px;padding:0 14px;font-size:12.5px;margin-left:auto}
+.card{border-radius:22px;padding:4px 10px 10px;margin-top:2px;background:color-mix(in srgb,var(--fg) 3%,transparent);box-shadow:inset 0 0 0 .5px var(--line)}
+.sg{display:flex;align-items:center;gap:10px;margin:2px 0 8px}.sg>span{font:750 12px/1 var(--display);color:var(--fg2);width:52px;flex:none;padding-left:4px}.sg .seg{flex:1}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.grid2 .res{height:48px;font-size:13px;gap:10px}
+.grid2 .res .ri{width:32px;height:32px;border-radius:11px}
+.grid2 .res .ri svg{width:16px;height:16px}
+.foot{display:flex;justify-content:space-between;align-items:center;height:40px;margin:6px 0 -2px;padding:0 10px;border-radius:0 0 22px 22px;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--accent) 10%,transparent));font:650 11px var(--font);color:var(--fg3)}
+.foot b{font:850 13px var(--display);letter-spacing:-.02em;background:linear-gradient(120deg,var(--c-cyan),var(--accent),var(--c-violet));-webkit-background-clip:text;background-clip:text;color:transparent}
+.foot a{color:var(--fg2);cursor:default}.foot a:hover{color:var(--fg)}
 </style></head><body>
-<div id="wrap"><div id="panel"><div id="in">
- <div class="hero it" id="hd"><div class="tile" id="tile"></div><div class="tx"><div class="eye">Menu bar</div><div class="title">Koi</div><div class="sub" id="ver">Version 2.0.0</div></div><div class="pill" id="pill"><i></i><span>Up to date</span></div></div>
- <button class="btn it" id="open"><span class="sw"></span><svg viewBox="0 0 120 120" id="openmk"></svg><span>Open the fan</span><span class="ki" id="ki"></span></button>
- <div class="hero it" id="upb"><div class="ring"><svg viewBox="0 0 52 52"><circle cx="26" cy="26" r="22" fill="none" stroke="rgba(255,255,255,.18)" stroke-width="5"/><circle id="arc" cx="26" cy="26" r="22" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-dasharray="138.2" stroke-dashoffset="138.2"/></svg><b id="pct">0%</b></div><div><div class="eye">Koi update</div><div class="ut" id="upt">Update ready</div><small id="ups"></small></div><button class="btn" id="upgo">Restart</button></div>
- <div class="lbl it">Look and feel</div>
- <div class="sg it"><span>Theme</span><div class="seg" id="s-theme"><div class="th"></div><button data-v="dark">Dark</button><button data-v="light">Light</button></div></div>
- <div class="sg it"><span>Size</span><div class="seg" id="s-size"><div class="th"></div><button data-v=".85">S</button><button data-v="1">M</button><button data-v="1.2">B</button><button data-v="1.4">XL</button></div></div>
- <div class="sg it"><span>Motion</span><div class="seg" id="s-speed"><div class="th"></div><button data-v=".7">Soft</button><button data-v="1">Normal</button><button data-v="1.3">Fast</button></div></div>
- <div class="lbl it">General</div>
- <div class="row slab it" id="r-sound" style="--c:#b42cff"><div class="ico"><svg viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg></div>Glass sounds<div class="tg" id="t-sound"><i></i></div></div>
- <div class="row slab it" id="r-login" style="--c:#16c6ff"><div class="ico"><svg viewBox="0 0 24 24"><path d="M12 3v8"/><path d="M6.3 7.3a8 8 0 1 0 11.4 0"/></svg></div>Open at login<div class="tg" id="t-login"><i></i></div></div>
- <div class="row slab it" id="r-auto" style="--c:#1fd49a"><div class="ico"><svg viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19h14"/></svg></div>Download updates<div class="tg" id="t-auto"><i></i></div></div>
- <div class="row slab it" data-a="hotkeys" style="--c:#ff2e88"><div class="ico"><svg viewBox="0 0 24 24"><path d="M9 6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3z"/></svg></div>Hotkeys<span class="r" id="hkr"></span></div>
- <div class="grid2 it">
-  <div class="row slab" data-a="tour" style="--c:#7a3cff"><div class="ico"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5z"/></svg></div>Replay tour</div>
-  <div class="row slab" data-a="update" style="--c:#16c6ff"><div class="ico"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg></div>Check now</div>
-  <div class="row slab" data-a="about" style="--c:#ffad1f"><div class="ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.1"/></svg></div>About Koi</div>
-  <div class="row slab dg" data-a="quit"><div class="ico"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></div>Quit Koi</div>
+<div id="wrap"><div id="panel" class="glass">
+ <div class="chero it" id="hd"><span class="hart" id="hart"></span><div class="ic" id="tile"></div><div><h3>Koi</h3><div class="sub" id="ver">Version 2.0.0</div></div><div class="pill" id="pill"><i></i><span>Up to date</span></div></div>
+ <div class="res gem it" id="open"><div class="ri" id="openmk"></div>Open the fan<span class="r" id="ki"></span></div>
+ <div class="glass it" id="upb"><div class="ring"><svg viewBox="0 0 56 56"><defs><linearGradient id="ug" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#5b8cff"/><stop offset=".55" stop-color="#a66be3"/><stop offset="1" stop-color="#f4679b"/></linearGradient></defs><circle cx="28" cy="28" r="24" fill="none" stroke="rgba(127,127,160,.25)" stroke-width="4"/><circle id="arc" cx="28" cy="28" r="24" fill="none" stroke="url(#ug)" stroke-width="4" stroke-linecap="round" stroke-dasharray="150.8" stroke-dashoffset="150.8"/></svg><b id="pct">0%</b></div><div style="min-width:0"><div class="kick">Koi update</div><div class="ut" id="upt">Update ready</div><small id="ups"></small></div><button class="btn" id="upgo">Restart</button></div>
+ <div class="sec it">Look and feel</div>
+ <div class="card it">
+  <div class="sg" style="margin-top:8px"><span>Theme</span><div class="seg" id="s-theme"><div class="th"></div><button data-v="dark">Dark</button><button data-v="light">Light</button></div></div>
+  <div class="sg"><span>Size</span><div class="seg" id="s-size"><div class="th"></div><button data-v=".85">S</button><button data-v="1">M</button><button data-v="1.2">B</button><button data-v="1.4">XL</button></div></div>
+  <div class="sg" style="margin-bottom:0"><span>Motion</span><div class="seg" id="s-speed"><div class="th"></div><button data-v=".7">Soft</button><button data-v="1">Normal</button><button data-v="1.3">Fast</button></div></div>
  </div>
- <div class="ft it"><span id="ft">Koi lives in your menu bar</span><a data-a="repo">Release notes</a></div>
-</div></div></div>
+ <div class="sec it">General</div>
+ <div class="res it" id="r-sound" style="--ic:#8b5cf6"><div class="ri"><svg viewBox="0 0 24 24"><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z"/><path d="M15.5 9a4.2 4.2 0 0 1 0 6M18 6.5a8 8 0 0 1 0 11"/></svg></div>Glass sounds<div class="tg" id="t-sound"><i></i></div></div>
+ <div class="res it" id="r-login" style="--ic:#06b6d4"><div class="ri"><svg viewBox="0 0 24 24"><path d="M12 3v8"/><path d="M6.3 7.3a8 8 0 1 0 11.4 0"/></svg></div>Open at login<div class="tg" id="t-login"><i></i></div></div>
+ <div class="res it" id="r-auto" style="--ic:#10b981"><div class="ri"><svg viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19h14"/></svg></div>Download updates<div class="tg" id="t-auto"><i></i></div></div>
+ <div class="res it" data-a="hotkeys" style="--ic:#2f7bff"><div class="ri"><svg viewBox="0 0 24 24"><path d="M9 6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3z"/></svg></div>Hotkeys<span class="r" id="hkr"></span></div>
+ <div class="grid2 it">
+  <div class="res" data-a="tour" style="--ic:#a24bf5"><div class="ri"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5z"/></svg></div>Replay tour</div>
+  <div class="res" data-a="update" style="--ic:#0ea5e9"><div class="ri"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg></div>Check now</div>
+  <div class="res" data-a="about" style="--ic:#f5a300"><div class="ri"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.1"/></svg></div>About Koi</div>
+  <div class="res" data-a="quit" style="--ic:#ec2f5b"><div class="ri"><svg viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17"/></svg></div>Quit Koi</div>
+ </div>
+ <div class="foot it"><span><b>Koi</b>&nbsp; <span id="ft">lives in your menu bar</span></span><a data-a="repo">Release notes</a></div>
+</div></div>
 <script src="spring.js"></script>
 <script>
 const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)],api=window.koiAPI&&window.koiAPI.pop,{Sp,jelly}=KoiSpring;
-KoiHero($('#hd'));KoiHero($('#upb'));
-$('#tile').innerHTML=KoiMark(38,false,true);
-$('#openmk').outerHTML=KoiMark(22,false,true);
+$('#hart').innerHTML=KoiMark('100%',true);$('#tile').innerHTML=KoiMark(36,false,true);$('#openmk').innerHTML=KoiMark(24,false,true);
 let S={theme:'dark',size:1,speed:1.3,sound:false,login:false,autoDownload:true,shortcut:'⌥ Space',version:'2.0.0',upd:{status:'idle'}};
 const segs={};
 function mkSeg(id,key){const el=$('#'+id),th=el.querySelector('.th'),btns=[...el.querySelectorAll('button')];
- const sx=new Sp(0,260,17),sq=new Sp(0,260,13);let w0=10;
- const apply=()=>{th.style.transform=`translateX(${sx.x}px) scale(${1+Math.abs(sq.x)*.06},${1-Math.abs(sq.x)*.04})`};sx.cb=sq.cb=apply;
+ const sx=new Sp(0,300,22),sq=new Sp(0,380,21.4);
+ const apply=()=>{th.style.transform=`translateX(${sx.x}px) scale(${1+Math.abs(sq.x)*.05},${1-Math.abs(sq.x)*.04})`};sx.cb=sq.cb=apply;
  let first=true;
  const upd=v=>{let i=btns.findIndex(b=>+b.dataset.v===+v||b.dataset.v===String(v));if(i<0)i=0;btns.forEach((b,j)=>b.classList.toggle('on',j===i));
   const b=btns[i];if(!b.offsetWidth)return;th.style.width=b.offsetWidth+'px';
-  if(first){sx.jump(b.offsetLeft);first=false}else{sx.set(b.offsetLeft);sq.kick(b.offsetLeft>sx.x?6:-6)}};
- btns.forEach(b=>b.onclick=()=>{const v=b.dataset.v,val=key==='theme'?v:+v;S[key]=val;upd(val);api&&api.set(key,val);if(key==='theme')document.documentElement.classList.toggle('lt',val==='light');tick()});
+  if(first){sx.jump(b.offsetLeft);first=false}else{sq.kick(b.offsetLeft>sx.x?5:-5);sx.set(b.offsetLeft)}};
+ btns.forEach(b=>b.onclick=()=>{const v=b.dataset.v,val=key==='theme'?v:+v;S[key]=val;upd(val);api&&api.set(key,val);if(key==='theme')document.documentElement.classList.toggle('dark',val!=='light');tick()});
  segs[key]=upd}
 mkSeg('s-theme','theme');mkSeg('s-size','size');mkSeg('s-speed','speed');
-function mkToggle(row,tg,key){const el=$('#'+tg),th=el.querySelector('i');const x=new Sp(0,320,15),q=new Sp(0,300,12);
- const ap=()=>{th.style.transform=`translateX(${x.x}px) scale(${1+Math.abs(q.x)*.08},${1-Math.abs(q.x)*.05})`};x.cb=q.cb=ap;
- const upd=on=>{el.classList.toggle('on',!!on);x.set(on?20:0)};
- $('#'+row).onclick=()=>{S[key]=!S[key];upd(S[key]);q.kick(S[key]?5:-5);api&&api.set(key,S[key]);tick()};
- upd.init=on=>{el.classList.toggle('on',!!on);x.jump(on?20:0)};return upd}
+function mkToggle(row,tg,key){const el=$('#'+tg),th=el.querySelector('i');const x=new Sp(0,300,22),q=new Sp(0,380,21.4);
+ const ap=()=>{th.style.transform=`translateX(${x.x}px) scale(${1+Math.abs(q.x)*.07},${1-Math.abs(q.x)*.05})`};x.cb=q.cb=ap;
+ const upd=on=>{el.classList.toggle('on',!!on);x.set(on?18:0)};
+ $('#'+row).onclick=()=>{S[key]=!S[key];upd(S[key]);q.kick(S[key]?4:-4);api&&api.set(key,S[key]);tick()};
+ upd.init=on=>{el.classList.toggle('on',!!on);x.jump(on?18:0)};return upd}
 const tSound=mkToggle('r-sound','t-sound','sound'),tLogin=mkToggle('r-login','t-login','login'),tAuto=mkToggle('r-auto','t-auto','autoDownload');
-$$('.row').forEach(r=>jelly(r,1.02,3));jelly($('#open'),1.03);jelly($('#upgo'),1.08);
-// entrance and exit: one spring for the panel; the rows play a one-shot staggered CSS entrance
-const panel=$('#panel');const ps=new Sp(.82,230,15),py=new Sp(-14,230,15),po=new Sp(0,320,26);
+$$('.res').forEach(r=>jelly(r,1.015,-1));jelly($('#upgo'),1.05);
+const panel=$('#panel');const ps=new Sp(.86,300,22),py=new Sp(-12,300,22),po=new Sp(0,320,28);
 const apPanel=()=>{panel.style.opacity=Math.max(0,Math.min(1,po.x));panel.style.transform=`translateY(${py.x}px) scale(${ps.x})`};ps.cb=py.cb=po.cb=apPanel;
 function show(anchor){
- panel.style.transformOrigin=(anchor||174)+'px 0px';
- ps.jump(.84);py.jump(-14);po.jump(0);ps.set(1);py.set(0);po.set(1);
- panel.classList.remove('on');void panel.offsetWidth;$$('.it').forEach((el,i)=>el.style.animationDelay=(40+i*32)+'ms');panel.classList.add('on');
+ panel.style.transformOrigin=(anchor||172)+'px 0px';
+ ps.jump(.86);py.jump(-12);po.jump(0);ps.set(1);py.set(0);po.set(1);
+ panel.classList.remove('on');void panel.offsetWidth;$$('.it').forEach((el,i)=>el.style.animationDelay=(30+i*40)+'ms');panel.classList.add('on');
  render();tick();
 }
-function hide(){ps.set(.94);py.set(-6);po.k=420;po.c=32;po.set(0);setTimeout(()=>{po.k=320;po.c=26},260)}
+function hide(){ps.set(.95);py.set(-6);po.k=420;po.c=34;po.set(0);setTimeout(()=>{po.k=320;po.c=28},260)}
 const fmtMB=b=>(b/1048576).toFixed(1)+' MB';
 function render(){
- document.documentElement.classList.toggle('lt',S.theme==='light');
+ document.documentElement.classList.toggle('dark',S.theme!=='light');
  $('#ver').textContent='Version '+(S.version||'2.0.0');
  segs.theme(S.theme);segs.size(S.size);segs.speed(S.speed);tSound.init(S.sound);tLogin.init(S.login);tAuto.init(S.autoDownload);
  const caps=String(S.shortcut||'').split(' ').filter(Boolean).map(k=>`<kbd>${k.replace(/[<>&]/g,'')}</kbd>`).join('');
  $('#ki').innerHTML=caps;$('#hkr').innerHTML=caps;
  const u=S.upd||{},pill=$('#pill'),ub=$('#upb'),st=u.status,v=String(u.latest||'').replace(/^v/,'');pill.className='pill';
- const ring=p=>{$('#arc').style.strokeDashoffset=String(138.2*(1-Math.max(0,Math.min(100,p))/100));$('#pct').textContent=Math.round(p)+'%'};
+ const ring=p=>{$('#arc').style.strokeDashoffset=String(150.8*(1-Math.max(0,Math.min(100,p))/100));$('#pct').textContent=Math.round(p)+'%'};
  if(st==='ready'){pill.classList.add('up');pill.querySelector('span').textContent='Update ready';ub.classList.add('show');$('#upt').textContent='Koi '+v+' is ready';$('#ups').textContent='Restart to switch, about 3 seconds';$('#upgo').textContent='Restart';ring(100);$('#pct').textContent='Go'}
  else if(st==='available'||st==='downloading'||st==='unpacking'||st==='installing'){pill.classList.add('up');pill.querySelector('span').textContent=st==='available'?'Update found':st==='installing'?'Restarting':(u.progress||0)+'%';ub.classList.add('show');$('#upt').textContent='Koi '+v;
   $('#ups').textContent=st==='available'?(u.size?fmtMB(u.size)+', ready to download':'Ready to download'):st==='unpacking'?'Checking the download':st==='installing'?'Restarting Koi':'Downloading'+(u.speed?' at '+fmtMB(u.speed)+'/s':'');$('#upgo').textContent=st==='available'?'Get it':st==='installing'?'Wait':'Cancel';ring(st==='unpacking'||st==='installing'?100:(u.progress||0))}
  else if(st==='checking'){pill.querySelector('span').textContent='Checking';ub.classList.remove('show')}
  else if(st==='error'){pill.classList.add('err');pill.querySelector('span').textContent='Update hiccup';ub.classList.remove('show')}
  else{pill.querySelector('span').textContent='Up to date';ub.classList.remove('show')}
- $('#ft').textContent=u.lastCheck?'Checked for updates at '+new Date(u.lastCheck).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'Koi lives in your menu bar';
+ $('#ft').textContent=u.lastCheck?'checked '+new Date(u.lastCheck).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}):'lives in your menu bar';
  tick();
 }
-function tick(){clearTimeout(tick.t);tick.t=setTimeout(()=>{api&&api.size(panel.offsetHeight+30)},40)}
+function tick(){clearTimeout(tick.t);tick.t=setTimeout(()=>{api&&api.size(panel.offsetHeight+34)},40)}
 $('#open').onclick=()=>api&&api.action('open');
 $('#upgo').onclick=()=>{const st=(S.upd||{}).status;if(!api||st==='installing')return;api.action(st==='ready'?'install':st==='available'?'download':'cancel')};
 $$('[data-a]').forEach(r=>r.onclick=()=>api&&api.action(r.dataset.a));
