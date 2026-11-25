@@ -2,6 +2,9 @@
 // Stock libuiohook installs an active session event tap for every mouse move, click and scroll too, which puts
 // Koi in the path of every pointer event on the Mac (and wakes it for each one). Koi only needs keys and
 // modifier changes, so the tap mask is cut down to kCGEventKeyDown | kCGEventKeyUp | kCGEventFlagsChanged.
+// It also skips libuiohook's key-typed lookup: for every key press (modifiers included) it would dispatch_sync to
+// the main queue to turn the key into text, which uiohook-napi then throws away. Without it, typing never waits
+// on Koi's main thread.
 // The tap option is left alone, so the Accessibility permission people already gave Koi keeps working.
 // Builds arm64 and x64 into prebuilds/darwin-<arch>/ (what node-gyp-build loads). If anything fails, the stock
 // prebuilds are restored and the release still ships (Koi's key process drops mouse events itself).
@@ -16,8 +19,12 @@ const re = /CGEventMask event_mask = [\s\S]*?CGEventMaskBit\(NX_SYSDEFINED\);/;
 if (!re.test(c)) { if (/KOI: keys only/.test(c)) console.log('already patched'); else { warn('event mask not found; keeping stock prebuilds'); process.exit(0); } }
 else {
   c = c.replace(re, 'CGEventMask event_mask = /* KOI: keys only */ CGEventMaskBit(kCGEventKeyDown) | CGEventMaskBit(kCGEventKeyUp) | CGEventMaskBit(kCGEventFlagsChanged);');
-  fs.writeFileSync(src, c); console.log('patched the event mask: keys and modifier changes only');
+  console.log('patched the event mask: keys and modifier changes only');
 }
+const typed = '    // If the pressed event was not consumed...\n    if (event.reserved ^ 0x01) {';
+if (c.includes(typed)) { c = c.replace(typed, '    // KOI: no key-typed lookup (no dispatch_sync to the main queue on every key press)\n    if (0 && (event.reserved ^ 0x01)) {'); console.log('patched out the key-typed lookup'); }
+else if (!/KOI: no key-typed lookup/.test(c)) warn('key-typed lookup not found; it stays (harmless in the main process)');
+fs.writeFileSync(src, c);
 if (process.argv.includes('--patch-only')) process.exit(0);
 const pre = path.join(dir, 'prebuilds'), backup = path.join(dir, 'prebuilds.stock');
 fs.cpSync(pre, backup, { recursive: true });

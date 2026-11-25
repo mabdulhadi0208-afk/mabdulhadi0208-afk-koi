@@ -158,63 +158,161 @@ const label=()=>pretty(S.shortcut);
 const norm=a=>String(a).replace('CommandOrControl','Command').toLowerCase();
 const modOnly=a=>typeof a==='string'&&/^(Command|Control|Alt|Shift)(\+(Command|Control|Alt|Shift))+$/.test(a);
 const validAcc=a=>modOnly(a)||typeof a==='string'&&/^((Command|Control|Alt|Shift)\+)*([A-Z0-9]|F\d{1,2}|Space|Return|Tab|Backspace|Up|Down|Left|Right|[-=,./;'`\[\]\\])$/.test(a)&&(/\+/.test(a)||/^F\d{1,2}$/.test(a));
-let hookOk=false,hookLoaded=false,chords=[],recording=false;
 function canRegister(acc){if(modOnly(acc)){startHook(true);return hookLoaded}globalShortcut.unregisterAll();let ok=false;try{ok=globalShortcut.register(acc,()=>{});if(ok)globalShortcut.unregister(acc)}catch(e){}return ok}
 function launchApp(p,name){S.usage[name]=(S.usage[name]||0)+1;saveSoon();execFile('open',['-a',p],()=>{})}
 
-// ---- modifier-only chords (e.g. ⌘⌥) through a key hook that runs in its own process (koi-keys.js) ----
-// It only exists while a chord is set, reports key codes only (never mouse events, never text), and Koi's
-// build of the hook asks macOS for key events only, so the pointer never passes through Koi.
-let hookProc=null,hookStarting=false,hookErr='',quitting=false,inproc=null,retryT=null,retryN=0;
-const trusted=prompt=>{if(process.platform!=='darwin')return true;try{return require('electron').systemPreferences.isTrustedAccessibilityClient(!!prompt)}catch(e){return false}};
+// ---- modifier-only chords (e.g. ⌘⌥) through a key hook (uiohook) that runs in THIS process ----
+// Why here and not in a utility process (Koi 2.0.0 did that, and Command + Option never fired):
+//  1. libuiohook hands every key press, modifiers included, to the main dispatch queue with dispatch_sync (its
+//     key-typed lookup, libuiohook/src/darwin/input_hook.c). Only a process whose main thread runs a CFRunLoop
+//     drains that queue. Koi's main process does; a utility process does not, so the hook thread hung on the
+//     first key press (the Command of Command + Option), the Option never arrived and the tap went dead.
+//  2. macOS grants Accessibility to the process that creates the event tap. That must be the process that
+//     isTrustedAccessibilityClient answers for, or the permission check means nothing.
+// The hook only exists while a chord is set. CI builds it to ask for key events only and to skip the key-typed
+// lookup (build/patch-uiohook.js), so typing never waits on Koi.
+const KOI_ID='com.koi.switcher';
+let hookOk=false,hookLoaded=false,chords=[],recording=false,hookErr='',quitting=false,retryT=null,retryN=0,uio=null;
+let trustTest=null,idleTest=null;                              // tests only (KOI_TEST): simulate macOS answers
+const trusted=prompt=>{if(trustTest!==null)return trustTest;if(process.platform!=='darwin')return true;try{return require('electron').systemPreferences.isTrustedAccessibilityClient(!!prompt)}catch(e){return false}};
 try{require.resolve('uiohook-napi');hookLoaded=true}catch(e){console.error('key hook unavailable',e&&e.message)}
+// uiohook key codes: left and right Option, Control, Shift, Command
 const M={56:'Alt',3640:'Alt',29:'Control',3613:'Control',42:'Shift',54:'Shift',3675:'Command',3676:'Command'};
-const held=new Set();let dirty=false,fired=false;
-const cur=()=>{const n=new Set([...held].map(x=>x.split(':')[0]));return ['Command','Control','Alt','Shift'].filter(x=>n.has(x)).join('+')};
-function onKey(type,keycode){const m=M[keycode];
-  if(type==='down'){if(!m){dirty=true;return}
-    held.add(m+':'+keycode);
-    if(!dirty&&!fired&&!recording){const acc=cur();if(acc.includes('+')){const c=chords.find(c=>c.acc===acc);if(c){fired=true;c.fn()}}}}
-  else{if(!m)return;held.delete(m+':'+keycode);if(held.size===0){dirty=false;fired=false}}}
-function stopHook(){clearTimeout(retryT);retryT=null;const p=hookProc;hookProc=null;hookOk=false;hookStarting=false;try{p&&p.kill()}catch(e){}if(inproc){try{inproc.stop()}catch(e){}inproc=null}held.clear()}
-function startInProcess(){       // fallback if a utility process cannot run the hook
-  try{const {uIOhook}=require('uiohook-napi');const mods=new Set(Object.keys(M).map(Number));let h=0;
-    uIOhook.handler=function(e){const t=e.type;if(t!==4&&t!==5)return;const m=mods.has(e.keycode);if(!m&&!h)return;if(m)h=Math.max(0,h+(t===4?1:-1));onKey(t===4?'down':'up',e.keycode)};
-    uIOhook.start();inproc=uIOhook;hookOk=true;hookErr='';try{reg()}catch(e){}}catch(e){hookErr='start'}
+const STALE=20000;                                             // a modifier "held" this long lost its key-up
+const held=new Map();let dirty=false,fired=false,evN=0,lastEvAt=0;
+const cur=()=>{const n=new Set([...held.keys()].map(x=>x.split(':')[0]));return ['Command','Control','Alt','Shift'].filter(x=>n.has(x)).join('+')};
+function resetKeys(){held.clear();dirty=false;fired=false}
+// fires the instant the held modifiers are exactly a chord; a real key in between (Command + Option + K) cancels it
+function onKey(type,keycode,now=Date.now()){
+  evN++;lastEvAt=now;if(hookOk&&health!=='ok'&&health!=='fixed')heard();
+  const m=M[keycode];
+  if(type==='down'){
+    if(!m){if(held.size)dirty=true;return}
+    for(const [k,t] of held)if(now-t>STALE)held.delete(k);    // a key-up macOS never delivered (secure input, sleep, a tap timeout)
+    if(!held.size){dirty=false;fired=false}                    // a fresh gesture: nothing stuck from the last one
+    held.set(m+':'+keycode,now);
+    if(dirty||fired||recording)return;
+    const acc=cur();if(!acc.includes('+'))return;
+    const c=chords.find(c=>c.acc===acc);if(c){fired=true;try{c.fn()}catch(e){console.error('chord',e&&e.message)}}
+  }else{if(!m)return;held.delete(m+':'+keycode);if(!held.size){dirty=false;fired=false}}
 }
-function startHook(prompt){
-  if(hookOk||hookStarting||!hookLoaded||quitting)return hookOk;
-  if(!trusted(prompt)){hookErr='permission';scheduleRetry();return false}
-  hookStarting=true;hookErr='';
-  let p;try{p=require('electron').utilityProcess.fork(path.join(__dirname,'koi-keys.js'),[],{serviceName:'Koi Keys',stdio:'ignore'})}catch(e){hookStarting=false;startInProcess();return hookOk}
-  hookProc=p;
-  const t=setTimeout(()=>{if(hookProc===p&&!hookOk){stopHook();startInProcess()}},8000);
-  p.on('message',m=>{if(hookProc!==p||!m)return;
-    if(m.ev)onKey(m.ev,m.k);
-    else if(m.started){clearTimeout(t);hookOk=true;hookStarting=false;retryN=0;try{reg()}catch(e){}}
-    else if(m.error){clearTimeout(t);stopHook();startInProcess()}});
-  p.on('exit',()=>{clearTimeout(t);if(hookProc===p){hookProc=null;hookOk=false;hookStarting=false;scheduleRetry()}});
-  return false;
+function stopHook(){clearTimeout(retryT);retryT=null;stopProbe();if(hookOk&&uio){try{uio.stop()}catch(e){}}hookOk=false;resetKeys()}
+function startHook(prompt,quiet){
+  if(hookOk||!hookLoaded||quitting)return hookOk;
+  if(!trusted(prompt)){hookErr='permission';setHealth('denied');scheduleRetry();return false}
+  try{
+    if(!uio){uio=require('uiohook-napi').uIOhook;
+      // replace the EventEmitter fan-out: only key events, nothing else is looked at
+      uio.handler=function(e){const t=e.type;if(t===4||t===5)onKey(t===4?'down':'up',e.keycode)}}
+    uio.start();
+  }catch(e){hookErr='start';console.error('key hook start',e&&e.message);setHealth('broken');scheduleRetry();return false}
+  hookOk=true;hookErr='';retryN=0;clearTimeout(retryT);retryT=null;resetKeys();
+  evN=0;hookAt=Date.now();activeN=0;
+  if(!quiet)setHealth(BAD.includes(health)?'fixed':'waiting');
+  startProbe();
+  try{reg()}catch(e){}
+  return true;
 }
-// retry only while a chord needs the hook and it is not running: every 2 s for a minute, then every 15 s
-function scheduleRetry(){if(retryT||quitting)return;retryT=setTimeout(()=>{retryT=null;if(hookOk||!hookLoaded||!chords.length)return;retryN++;startHook(false);if(!hookOk)scheduleRetry()},retryN<30?2000:15000)}
+// while a chord needs the hook and it is not running: every 1.5 s while the permission card is up, otherwise every
+// 2 s for a minute, then every 15 s. It stops as soon as the hook runs or no chord needs it.
+function scheduleRetry(){if(retryT||quitting)return;retryT=setTimeout(()=>{retryT=null;if(hookOk||!hookLoaded||!chords.length)return;retryN++;startHook(false);if(!hookOk)scheduleRetry()},permShown()?1500:retryN<30?2000:15000)}
+
+// ---- hook health: notice when macOS stops passing keys to Koi, and heal as soon as it does again ----
+// health: off (no chord) | waiting (hook runs, no key heard yet) | ok | fixed (just healed) | denied (no
+// Accessibility, or a grant macOS no longer honours) | deaf (hook runs, but the Mac is in use and no key reaches it)
+// | broken (the hook would not start). The probe only runs while the hook has not heard a single key yet.
+let health='off',hookAt=0,activeN=0,probeT=null,deafN=0;
+const PROBE_MS=()=>permShown()?4000:30000,DEAF_AFTER=6;     // 6 probes of an active Mac with no key at all
+function startProbe(){stopProbe();probeT=setTimeout(probe,PROBE_MS())}
+function stopProbe(){clearTimeout(probeT);probeT=null}
+function idleSecs(){if(idleTest!==null)return idleTest;try{return require('electron').powerMonitor.getSystemIdleTime()}catch(e){return 1e9}}
+function probe(){
+  probeT=null;if(!hookOk||!chords.length)return;
+  if(!trusted(false)){stopHook();hookErr='permission';setHealth('denied');scheduleRetry();return}   // revoked, or went stale
+  if(evN){heard();return}
+  if(idleSecs()<30)activeN++;
+  if(activeN>=DEAF_AFTER)return deafNow('quiet');
+  startProbe();
+}
+// proof that the hook is deaf: the Mac is in use (or a key shortcut just fired) and the hook heard nothing.
+// First a quiet restart of the hook; if it is still deaf after that, the permission card explains the fix.
+function deafNow(why){
+  deafN++;console.error('key hook deaf',why,deafN);
+  stopHook();startHook(false,true);
+  if(hookOk&&deafN>=2)setHealth('deaf');
+}
+function heard(){if(health==='ok'||health==='fixed')return;stopProbe();deafN=0;setHealth(health==='deaf'||health==='broken'||health==='denied'?'fixed':'ok')}
+const BAD=['denied','deaf','broken'];
+function setHealth(h){
+  if(h==='fixed'&&!permShown())h='ok';
+  if(h===health)return;health=h;
+  if(!BAD.includes(h))permSnooze='';
+  if(BAD.includes(h))showPermCard(false);
+  else if(h==='fixed'){pushPerm();clearTimeout(permAutoT);permAutoT=setTimeout(()=>{if(health==='fixed')health='ok';hidePermCard()},2800)}
+  pushPerm();sendPop();
+}
+// a regular shortcut that holds modifiers fired: the hook must have heard those modifiers go down
+function crossCheck(){if(!hookOk||!chords.length)return;const t=Date.now();setTimeout(()=>{if(hookOk&&t-hookAt>3000&&lastEvAt<t-1500)deafNow('shortcut')},1500)}
+
 let regStatus={main:false,hk:[]};
-function tryReg(acc,fn){if(modOnly(acc)){chords=chords.filter(c=>c.acc!==acc);chords.push({acc,fn});return hookOk}try{if(globalShortcut.isRegistered(acc))globalShortcut.unregister(acc);return globalShortcut.register(acc,fn)&&globalShortcut.isRegistered(acc)}catch(e){console.error('reg fail',acc,e&&e.message);return false}}
+function tryReg(acc,fn){if(modOnly(acc)){chords=chords.filter(c=>c.acc!==acc);chords.push({acc,fn});return hookOk}try{if(globalShortcut.isRegistered(acc))globalShortcut.unregister(acc);const f=()=>{crossCheck();fn()};return globalShortcut.register(acc,f)&&globalShortcut.isRegistered(acc)}catch(e){console.error('reg fail',acc,e&&e.message);return false}}
 function reg(){
   globalShortcut.unregisterAll();chords=[];
   let ok=tryReg(S.shortcut,toggle);
   if(!ok&&S.shortcut!==DEF.shortcut){tryReg(DEF.shortcut,toggle)}/* temporary fallback only; never overwrite the saved shortcut (old instance may still hold it during an update) */
   regStatus={main:ok,hk:S.hotkeys.map(h=>tryReg(h.acc,()=>launchApp(h.path,h.name)))};
-  if(chords.length){if(!hookOk)startHook(false)}else if(hookOk||hookProc||inproc)stopHook();
+  if(chords.length){if(!hookOk)startHook(false)}else{if(hookOk)stopHook();clearTimeout(retryT);retryT=null;stopProbe();deafN=0;if(health!=='off'){health='off';hidePermCard();pushPerm()}}
   if(!ok)console.error('main shortcut failed');
 }
+
+// ---- the permission card: Lumen-style, top of the screen, says exactly what to do, and heals itself ----
+let permWin=null,permSnooze='',permAutoT=null;
+const permShown=()=>!!(permWin&&!permWin.isDestroyed()&&permWin.isVisible());
+const chordLabel=()=>{const c=chords[0];return c?pretty(c.acc):''};
+const chordWhat=()=>{const c=chords[0];if(!c)return '';const h=S.hotkeys.find(h=>h.acc===c.acc);return h&&c.acc!==S.shortcut?'opens '+h.name:'opens the fan'};
+const permState=()=>({state:health,chord:chordLabel(),what:chordWhat(),trusted:trusted(false),hook:hookOk,err:hookErr,mac:process.platform==='darwin'});
+function pushPerm(){if(permWin&&!permWin.isDestroyed()){try{permWin.webContents.send('perm:state',permState())}catch(e){}}}
+function showPermCard(manual){
+  if(!manual&&(permSnooze===health||!BAD.includes(health)))return;
+  if(manual)permSnooze='';
+  clearTimeout(permAutoT);
+  if(permWin&&!permWin.isDestroyed()){if(!permWin.isVisible())permWin.showInactive();pushPerm();scheduleRetryFast();return}
+  const d=screen.getPrimaryDisplay().workArea,w=620,h=384;
+  permWin=new BrowserWindow({width:w,height:h,x:Math.round(d.x+d.width/2-w/2),y:d.y+6,frame:false,transparent:true,hasShadow:false,resizable:false,alwaysOnTop:true,skipTaskbar:true,focusable:true,fullscreenable:false,backgroundColor:'#00000000',show:false,
+    webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false}});
+  permWin.setVisibleOnAllWorkspaces(true,{visibleOnFullScreen:true});permWin.setAlwaysOnTop(true,'screen-saver');
+  permWin.loadFile(path.join(__dirname,'renderer','perm.html'),{query:{theme:S.theme||'dark'}});
+  permWin.once('ready-to-show',()=>{if(!permWin||permWin.isDestroyed())return;permWin.showInactive();pushPerm();scheduleRetryFast()});
+  permWin.on('closed',()=>{permWin=null});
+}
+// the card is up: look for the permission every 1.5 s (and the probe every 4 s) so the hotkey comes back the moment it can
+function scheduleRetryFast(){if(!hookOk&&chords.length){clearTimeout(retryT);retryT=null;scheduleRetry()}else if(hookOk&&probeT){startProbe()}}
+// it folds itself away first, then the window is destroyed (nothing of it stays around)
+function hidePermCard(){clearTimeout(permAutoT);if(!permWin||permWin.isDestroyed())return;try{permWin.webContents.send('perm:hide')}catch(e){}const w=permWin;setTimeout(()=>{if(!w.isDestroyed())w.destroy()},260)}
+const PANES={access:'x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility',input:'x-apple.systempreferences:com.apple.preference.security?Privacy_ListenEvent'};
+// "Open Accessibility": a grant macOS no longer honours cannot be switched back on, so Koi first clears its own stale
+// entry (tccutil reset only touches Koi), asks macOS to list Koi again, then opens the exact pane.
+function openPane(which){
+  const go=()=>{if(which==='access')trusted(true);shell.openExternal(PANES[which]).catch(()=>{})};
+  if(process.platform==='darwin'&&!hookOk&&(health==='denied'||health==='deaf'||health==='broken'))execFile('tccutil',['reset',which==='access'?'Accessibility':'ListenEvent',KOI_ID],()=>go());
+  else go();
+  if(BAD.includes(health))showPermCard(true);
+}
+ipcMain.handle('perm:action',(_e,a)=>{
+  if(a==='state')return permState();
+  if(a==='access'||a==='input')openPane(a);
+  else if(a==='later'){permSnooze=health;hidePermCard()}
+  else if(a==='close'){hidePermCard()}
+  else if(a==='retry'){if(!hookOk)startHook(false);else deafNow('manual')}
+  return permState();
+});
 const winOpts=(w,h,bg)=>({width:w,height:h,titleBarStyle:'hiddenInset',backgroundColor:bg,show:false,webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false}});
 function openSettings(){
   if(settingsWin&&!settingsWin.isDestroyed()){settingsWin.focus();return}
   settingsWin=new BrowserWindow({...winOpts(940,700,S.theme==='light'?'#f5f6fb':'#0a0c15'),minWidth:780,minHeight:560});
   settingsWin.once('ready-to-show',()=>settingsWin.show());
   settingsWin.loadFile(path.join(__dirname,'renderer','settings.html'),{query:{theme:S.theme,v:app.getVersion()}});
-  settingsWin.on('closed',()=>{settingsWin=null;reg();sendPop()});
+  settingsWin.on('closed',()=>{settingsWin=null;recording=false;resetKeys();reg();sendPop()});   // closing mid-recording must not leave chords paused
 }
 function openAbout(){
   if(aboutWin&&!aboutWin.isDestroyed()){aboutWin.focus();return}
@@ -300,10 +398,11 @@ ipcMain.on('koi:action',(_e,kind,p,name)=>{
   else if(kind==='quit')execFile('osascript',['-e',`tell application "${safe}" to quit`],()=>{runSet.delete(name);done()});
 });
 const taken=(acc,skip)=>norm(acc)===norm(S.shortcut)&&skip!=='main'||S.hotkeys.some((h,i)=>i!==skip&&norm(h.acc)===norm(acc));
-ipcMain.handle('koi:s:get',async()=>{if(!catalog.length)await scanAsync();return {status:regStatus,perm:{needed:modOnly(S.shortcut)||S.hotkeys.some(h=>modOnly(h.acc)),trusted:trusted(false),hook:hookOk,err:hookErr},main:S.shortcut,hk:S.hotkeys.map(h=>{const e=iconIdx[h.path];return {...h,icon:e&&e.f?iconUrl(e.f):''}}),apps:catalog.map(a=>({name:a.name,path:a.path})).sort((a,b)=>a.name.localeCompare(b.name))}});
-ipcMain.on('koi:s:openAccess',()=>{trusted(true);shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility')});
+ipcMain.handle('koi:s:get',async()=>{if(!catalog.length)await scanAsync();return {status:regStatus,perm:{needed:modOnly(S.shortcut)||S.hotkeys.some(h=>modOnly(h.acc)),trusted:trusted(false),hook:hookOk,err:hookErr,health},main:S.shortcut,hk:S.hotkeys.map(h=>{const e=iconIdx[h.path];return {...h,icon:e&&e.f?iconUrl(e.f):''}}),apps:catalog.map(a=>({name:a.name,path:a.path})).sort((a,b)=>a.name.localeCompare(b.name))}});
+ipcMain.on('koi:s:openAccess',()=>openPane('access'));
+ipcMain.on('koi:s:fixPerm',()=>{if(BAD.includes(health))showPermCard(true);else openPane('access')});
 ipcMain.handle('koi:s:pause',()=>{recording=true;globalShortcut.unregisterAll()});
-ipcMain.handle('koi:s:resume',()=>{recording=false;reg()});
+ipcMain.handle('koi:s:resume',()=>{recording=false;resetKeys();reg()});
 ipcMain.handle('koi:s:setMain',(_e,acc)=>{
   if(!validAcc(acc))return {ok:false,msg:'That key combo is not valid.',where:'m1'};
   if(taken(acc,'main')&&norm(acc)!==norm(S.shortcut))return {ok:false,msg:'One of your app hotkeys already uses it.',where:'m1'};
@@ -338,13 +437,14 @@ app.whenReady().then(()=>{
   updater.start({app,settings:()=>S,setBadge,onState:()=>sendPop(),saveSkip:v=>{S.skipped=v;saveSoon()},beforeQuit:()=>{app.isQuitting=true;quitting=true;saveNow();stopHook()}});
   reg();makeOverlay();
   setTimeout(()=>prewarm().catch(e=>console.error('prewarm',e&&e.message)),1200);
-  try{const {powerMonitor}=require('electron');['resume','unlock-screen'].forEach(ev=>powerMonitor.on(ev,()=>setTimeout(reg,1500)));}catch(e){}
+  try{const {powerMonitor}=require('electron');['resume','unlock-screen'].forEach(ev=>powerMonitor.on(ev,()=>setTimeout(()=>{resetKeys();if(ev==='resume'&&hookOk)stopHook();reg()},1500)));}catch(e){}   // a fresh tap after sleep; key-ups lost while asleep are dropped
   setTimeout(reg,3000);setTimeout(reg,9000);
   if(!S.tourSeen)openTour();
   if(process.env.KOI_TEST)global.__koiTest={show:showOverlay,hide:hideOverlay,toggle,
     popover:async({theme}={})=>{if(theme){S.theme=theme}showPopover();await new Promise(r=>setTimeout(r,60));return popWin},hidePopover,
     updateCard:s=>updater._preview(s),closeCard:()=>updater.actions.close(),about:()=>{openAbout();return aboutWin},
-    setHotkeys:(sc,hk)=>{S.shortcut=sc;S.hotkeys=hk;reg()},state:()=>({S,catalog:catalog.length,icons:Object.keys(iconIdx).length,hookOk,hookProc:!!hookProc,chords:chords.length,retry:!!retryT})};
+    setHotkeys:(sc,hk)=>{S.shortcut=sc;S.hotkeys=hk;reg()},state:()=>({S,catalog:catalog.length,icons:Object.keys(iconIdx).length,hookOk,chords:chords.length,retry:!!retryT,health,probe:!!probeT,evN}),
+    perm:{trust:v=>{trustTest=v},idle:v=>{idleTest=v},key:(t,k,now)=>onKey(t,k,now),fakeHook:()=>{hookLoaded=true;uio={starts:0,start(){this.starts++},stop(){}};return uio},probe:()=>{clearTimeout(probeT);probe()},shortcut:()=>crossCheck(),card:()=>permWin}};
 });
 app.on('second-instance',()=>showOverlay());
 app.on('before-quit',()=>{quitting=true;saveNow()});

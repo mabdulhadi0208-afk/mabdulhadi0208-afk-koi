@@ -18,7 +18,14 @@ contextBridge.exposeInMainWorld('koiAPI',{
     addHotkey:(a,n,p)=>ipcRenderer.invoke('koi:s:add',a,n,p),
     updateHotkey:(i,a)=>ipcRenderer.invoke('koi:s:update',i,a),
     removeHotkey:i=>ipcRenderer.invoke('koi:s:remove',i),
-    openAccess:()=>ipcRenderer.send('koi:s:openAccess')
+    openAccess:()=>ipcRenderer.send('koi:s:openAccess'),
+    fixPerm:()=>ipcRenderer.send('koi:s:fixPerm')
+  },
+  perm:{
+    state:()=>ipcRenderer.invoke('perm:action','state'),
+    onState:cb=>sub('perm:state',cb),
+    onHide:cb=>ipcRenderer.on('perm:hide',()=>cb()),
+    action:a=>ipcRenderer.invoke('perm:action',a)
   },
   pop:{
     get:()=>ipcRenderer.invoke('pop:get'),

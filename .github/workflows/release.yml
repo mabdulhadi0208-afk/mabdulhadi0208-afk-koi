@@ -11,6 +11,8 @@ permissions:
 jobs:
   mac:
     runs-on: macos-latest
+    env:
+      KOI_CERT_P12: ${{ secrets.KOI_CERT_P12 }}
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
@@ -29,6 +31,26 @@ jobs:
       - name: Key hook that only listens to keys (falls back to the stock build if it cannot compile)
         if: steps.v.outputs.release == 'true'
         run: node build/patch-uiohook.js
+      - name: Stable signing certificate (optional; keeps Accessibility across updates)
+        # Only if the repo has the KOI_CERT_P12 (base64) and KOI_CERT_PASSWORD secrets, made by tools/make-signing-cert.sh.
+        # Nothing is committed: the key lives only in the secret and in a throwaway keychain on this runner.
+        if: steps.v.outputs.release == 'true' && env.KOI_CERT_P12 != ''
+        env:
+          KOI_CERT_P12: ${{ secrets.KOI_CERT_P12 }}
+          KOI_CERT_PASSWORD: ${{ secrets.KOI_CERT_PASSWORD }}
+        shell: bash
+        run: |
+          set +e
+          KC="$RUNNER_TEMP/koi-sign.keychain-db"; KP=$(openssl rand -hex 16)
+          echo "$KOI_CERT_P12" | base64 --decode > "$RUNNER_TEMP/koi.p12"
+          security create-keychain -p "$KP" "$KC" && security set-keychain-settings -lut 3600 "$KC" && security unlock-keychain -p "$KP" "$KC"
+          security import "$RUNNER_TEMP/koi.p12" -k "$KC" -P "$KOI_CERT_PASSWORD" -T /usr/bin/codesign
+          rm -f "$RUNNER_TEMP/koi.p12"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KP" "$KC" >/dev/null
+          security list-keychains -d user -s "$KC" $(security list-keychains -d user | tr -d '"')
+          H=$(security find-identity -p codesigning "$KC" | awk '/\)/{print $2; exit}')
+          if [ -n "$H" ]; then echo "KOI_SIGN_IDENTITY=$H" >> "$GITHUB_ENV"; echo "KOI_KEYCHAIN=$KC" >> "$GITHUB_ENV"; echo "stable identity $H"; else echo "::warning title=signing::no identity in KOI_CERT_P12; ad-hoc signing"; fi
+          exit 0
       - run: sed -i.bak "s/__KOI_VERSION__/${{ steps.v.outputs.version }}/" renderer/app.html && rm renderer/app.html.bak
         if: steps.v.outputs.release == 'true'
       - name: Build DMGs and zips (retry on flaky hdiutil)

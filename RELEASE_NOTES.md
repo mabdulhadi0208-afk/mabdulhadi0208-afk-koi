@@ -1,12 +1,10 @@
-## Koi 2.0, the biggest update yet
+## Koi 2.0.1: Command + Option works again
 
-- **Opens instantly.** The fan used to take seconds to appear on a cold start. Now it is up in a blink: your apps, their icons and the running dots are ready before you press the hotkey, and refresh quietly afterwards.
-- **Part of the Lumen family.** Koi now wears Lumen's design: its colours, liquid glass and spectral rims, a Settings-style Hotkeys window with a dark rail and hero banners, a Lumen-style update card, and a hub in the middle of the fan that lights up in the colour of the app you point at.
-- **Zero cost when closed.** When the fan is away Koi really sleeps: no animation loops, no polling, nothing left on screen. Your Mac stays smooth.
-- **Lighter hotkeys.** Modifier-only hotkeys (like holding Command and Option) run in their own small process that only ever sees keys, never your mouse.
-- **New menu-bar panel, Hotkeys window and About.** Big hero cards, keycaps for your shortcuts, app icons next to app hotkeys, and a clear note when macOS needs Accessibility permission.
-- **A better update card.** A progress ring, live download speed, a Cancel that really cancels, and a smooth restart in about 3 seconds.
-- **Glass sounds.** Soft glassy clicks if you want them. Still off until you turn them on.
-- **New menu-bar icon.** A five-petal fan that blooms once when Koi opens.
+- **Modifier-only hotkeys work again.** Command + Option (and any other modifier-only hotkey) opens the fan again, the instant both keys are down. In 2.0.0 the key listener ran in a separate helper process that could not hear the keys on macOS; it now runs inside Koi again, as it did in 1.x.
+- **Never stuck.** A key release macOS loses (sleep, password fields) can no longer jam your hotkey until you restart Koi.
+- **A permission card that fixes itself.** If macOS forgets Koi's Accessibility permission after an update (System Settings can still show Koi switched on), Koi shows a card with the exact steps and a button that opens the right page. The hotkey turns back on the moment you are done, no restart.
+- **Koi notices when it goes deaf.** If keys stop reaching Koi, it quietly restarts its key listener, and only asks you when that is not enough.
 
-**Download:** [Apple Silicon](https://github.com/mabdulhadi0208-afk/mabdulhadi0208-afk-koi/releases/latest/download/Koi-mac-arm64.dmg) · [Intel](https://github.com/mabdulhadi0208-afk/mabdulhadi0208-afk-koi/releases/latest/download/Koi-mac-x64.dmg). Already on Koi 1.0? It updates itself.
+**If Command + Option does nothing after updating:** open System Settings, Privacy and Security, Accessibility, select Koi, click the minus button, then click plus and add Koi from Applications again. Koi picks it up by itself.
+
+**Download:** [Apple Silicon](https://github.com/mabdulhadi0208-afk/mabdulhadi0208-afk-koi/releases/latest/download/Koi-mac-arm64.dmg) · [Intel](https://github.com/mabdulhadi0208-afk/mabdulhadi0208-afk-koi/releases/latest/download/Koi-mac-x64.dmg). Already on Koi? It updates itself.

@@ -505,17 +505,14 @@ const later=(ms,f)=>setTimeout(()=>{if(!cancel)f()},ms);
 const POOLS='<div class="pools"><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i></div>';
 function gate(){S.film=true;F.style.display='block';bk.style.transition='none';bk.style.opacity=1;scene.innerHTML=POOLS+'<div class="brand"><div class="mk">'+logo(150)+'</div><p style="animation:none;opacity:1;font-size:18px;margin-top:4px">The Koi 2.0 film</p><div class="btns" style="animation:none;opacity:1"><button class="pr" id="g1">Play with sound</button><button id="g0">Play without sound</button></div></div>';$('#g1').onclick=()=>playFilm(true);$('#g0').onclick=()=>playFilm(false)}
 
-const KV=(()=>{const q=new URLSearchParams(location.search).get('v');if(q)return q;const v='__KOI_VERSION__';return v.indexOf('__')===0?'2.0.0':v})();
+const KV=(()=>{const q=new URLSearchParams(location.search).get('v');if(q)return q;const v='__KOI_VERSION__';return v.indexOf('__')===0?'2.0.1':v})();
 // What's new: only this version's changes
 const WHATS_NEW=[
- ['01','Opens instantly','The fan is up in a blink. Apps, icons and running dots are ready before you ask.','#5b8cff'],
- ['02','Part of the Lumen family','Lumen’s colours, liquid glass and hero banners everywhere, and a hub that glows in the colour of the app you point at.','#a66be3'],
- ['03','Zero cost when closed','When the fan is away Koi really sleeps: no loops, no polling, nothing on screen.','#13c1cd'],
- ['04','Lighter hotkeys','Modifier-only hotkeys run in their own little process and only ever see keys, never your mouse.','#fdb173'],
- ['05','New menu and Hotkeys','A hero menu-bar panel, a bigger Hotkeys window and a new About.','#5b8cff'],
- ['06','A better update card','A progress ring, live speed and a smooth restart in about 3 seconds.','#1fd49a'],
- ['07','Glass sounds','Soft glassy clicks if you want them. Still off until you turn them on.','#8b5cf6'],
- ['08','New menu-bar icon','A five-petal fan that blooms once when Koi opens.','#f4679b']];
+ ['01','Command + Option is back','Modifier-only hotkeys fire again, the instant both keys are down. The key hook runs inside Koi again, where macOS trusts it.','#5b8cff'],
+ ['02','Never stuck again','A key-up macOS loses (sleep, password fields) no longer jams your chord until you restart Koi.','#a66be3'],
+ ['03','A permission card that fixes itself','If macOS forgets Koi after an update, a card shows the exact steps, opens the right page, and turns the hotkey back on the moment you are done. No restart.','#ff8a3d'],
+ ['04','Koi notices when it goes deaf','If keys stop reaching Koi, it restarts its key hook on its own, and only asks you when that is not enough.','#13c1cd'],
+ ['05','Ready to keep the permission','Releases can now be signed with one stable certificate, so future updates keep Accessibility switched on.','#1fd49a']];
 const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 const STEPS=14;
 function say(n,t,d){cap.classList.remove('in');void cap.offsetWidth;cap.style.opacity='';cap.querySelector('.n').textContent='STEP '+n+' OF '+STEPS;cap.querySelector('.cw').textContent=n;cap.querySelector('b').textContent=t;cap.querySelector('p').textContent=d;cap.classList.add('in');pg.style.transform=`scaleX(${parseInt(n,10)/STEPS})`;bell(784,.03,1.4);whoosh(.025)}
@@ -576,7 +573,7 @@ async function tutorial(){
  close();await sleep(500);
  say('08','The menu-bar panel','Click the petals in the menu bar: theme, size, motion and sounds in one springy hero panel.');
  scene.innerHTML=MK('pop');await sleep(4200);
- say('09','Your hotkeys','Pick any combo, even just Command and Option held together, and give any app its own shortcut.');
+ say('09','Your hotkeys','Pick any combo, even just Command and Option held together. If macOS ever needs Accessibility again, Koi shows you exactly how.');
  scene.innerHTML=MK('hk');await sleep(4200);
  say('10','Updates itself','Koi checks quietly, downloads, then swaps itself in with one click. Your settings come along.');
  scene.innerHTML=MK('up');await sleep(4200);

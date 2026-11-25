@@ -1,2 +1,6 @@
 node_modules
 dist
+*.p12
+*.key
+*.cer
+.koi-signing

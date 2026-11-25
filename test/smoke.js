@@ -25,7 +25,7 @@ app.whenReady().then(async () => {
   const st = T.state(); ok(st.catalog >= 50 && st.icons >= 48, `pre-warm filled the app list and icon cache (${st.catalog} apps, ${st.icons} icons)`);
   const idx = path.join(ud, 'icon-cache', 'index.json'); ok(fs.existsSync(idx), 'icon cache index is on disk');
   ok(fs.readdirSync(path.join(ud, 'icon-cache')).filter(f => f.endsWith('.png')).length >= 48, 'icon PNGs are on disk');
-  ok(!st.hookProc && !st.hookOk && !st.retry, 'no key hook and no retry timer when no modifier-only hotkey is set');
+  ok(!st.hookOk && !st.retry && !st.probe, 'no key hook and no retry timer when no modifier-only hotkey is set');
   // open, then close from main: it must really hide
   const t0 = Date.now(); T.show(); ok(ov.isVisible(), `fan shows synchronously (${Date.now() - t0} ms)`);
   await sleep(500);
@@ -53,8 +53,8 @@ app.whenReady().then(async () => {
   // modifier-only chord starts the key hook, removing it stops it
   T.setHotkeys('Alt+Space', [{ acc: 'Command+Alt', name: 'Safari', path: '/Applications/Safari.app' }]); await sleep(2500);
   let s2 = T.state(); ok(s2.chords === 1, 'a modifier-only hotkey registers a chord');
-  out('INFO key hook running: ' + s2.hookOk + ' (utility process: ' + s2.hookProc + ')');
-  T.setHotkeys('Alt+Space', []); await sleep(300); s2 = T.state(); ok(!s2.hookOk && !s2.hookProc && !s2.retry, 'removing the chord stops the hook and its retry timer');
+  out('INFO key hook running in the main process: ' + s2.hookOk + ' (health ' + s2.health + ')');
+  T.setHotkeys('Alt+Space', []); await sleep(300); s2 = T.state(); ok(!s2.hookOk && !s2.retry && !s2.probe, 'removing the chord stops the hook and its retry timer');
   // popover, Hotkeys, About, update card: open cleanly, no console errors
   const pw = await T.popover({ theme: 'dark' }); await sleep(900); ok(pw && pw.isVisible(), 'popover opens');
   const ph = await pw.webContents.executeJavaScript(`document.getElementById('panel').offsetHeight`); ok(ph > 400 && ph < 900, `popover height fits (${ph})`);
@@ -78,7 +78,7 @@ app.whenReady().then(async () => {
   ok(trayOk, 'tray frames are 16x16 with 32x32 @2x');
   // no emojis anywhere in the app's UI files
   const emo = /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{1F000}-\u{1F2FF}]/u;
-  const files = ['main.js', 'updater.js', 'renderer/app.html', 'renderer/popover.html', 'renderer/settings.html', 'renderer/update.html', 'renderer/about.html'];
+  const files = ['main.js', 'updater.js', 'renderer/app.html', 'renderer/popover.html', 'renderer/settings.html', 'renderer/update.html', 'renderer/about.html', 'renderer/perm.html'];
   const bad = files.filter(f => emo.test(fs.readFileSync(path.join(__dirname, '..', f), 'utf8')));
   ok(bad.length === 0, 'no emojis in the UI' + (bad.length ? ' (' + bad.join(', ') + ')' : ''));
   ok(errs.length === 0, 'no console errors' + (errs.length ? ': ' + errs.slice(0, 4).join(' | ') : ''));

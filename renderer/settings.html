@@ -132,11 +132,12 @@ function render(){
  if(!st.hk.length){L.innerHTML='<div class="empty">No app hotkeys yet. Add one and that app is a keystroke away.</div>'}
  st.hk.forEach((h,i)=>{const r=document.createElement('div');r.className='row';const bad=st.status&&st.status.hk[i]===false;
   r.innerHTML=`${appTile(h)}<div class="nm">${esc(h.name)}</div><button class="rec" data-i="${i}" title="${bad?'Not active: another app owns it, or Koi needs Accessibility':''}">${caps(h.acc)}${bad?' <span class="warn">!</span>':''}</button><button class="x" data-x="${i}" title="Remove"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>`;L.appendChild(r)});
- const p=st.perm||{},bad=p.needed&&(!p.trusted||(!p.hook&&p.err));
+ const p=st.perm||{},h=p.health||'',deaf=h==='deaf'||h==='broken',bad=p.needed&&(!p.trusted||deaf||(!p.hook&&p.err));
  $('pbadge').classList.toggle('on',!!bad);
  $('accChip').textContent=!p.needed?'Not needed':bad?'Action needed':'All set';
- $('permT').textContent=!p.needed?'Nothing to do':!p.trusted?'Koi needs Accessibility':!p.hook&&p.err?'The key hook did not start':'Accessibility is on';
- $('permS').textContent=!p.needed?'None of your hotkeys need it.':!p.trusted?'Turn Koi on in System Settings, Privacy and Security, Accessibility.':!p.hook&&p.err?'Koi keeps trying. If it stays stuck, switch Koi off and on in Accessibility.':'Your modifier-only hotkeys are live.';
+ $('permT').textContent=!p.needed?'Nothing to do':!p.trusted?'Koi needs Accessibility':deaf?'macOS is not passing keys to Koi':!p.hook&&p.err?'The key hook did not start':'Accessibility is on';
+ $('permS').textContent=!p.needed?'None of your hotkeys need it.':bad?'In Accessibility, select Koi, click the minus button, then add Koi again with plus. After an update, switching it off and on is not enough. Koi turns the hotkey on by itself, no restart.':'Your modifier-only hotkeys are live.';
+ $('permGo').textContent=bad?'Fix it':'Open Accessibility settings';
  document.querySelectorAll('.btn,.rec,.x').forEach(b=>{if(!b._j){b._j=1;KoiSpring.jelly(b,1.04)}});
 }
 async function refresh(){st=await api.s.get();render()}
@@ -164,7 +165,7 @@ addEventListener('keydown',async e=>{
 });
 $('main').onclick=()=>startRec($('main'),acc=>api.s.setMain(acc));
 $('reset').onclick=async()=>{await api.s.setMain('Alt+Space');refresh()};
-$('permGo').onclick=()=>{api.s.openAccess();setTimeout(refresh,4000)};
+$('permGo').onclick=()=>{const p=st.perm||{};if(p.needed&&(!p.trusted||p.health==='deaf'||p.health==='broken'||(!p.hook&&p.err)))api.s.fixPerm();else api.s.openAccess();setTimeout(refresh,4000)};
 $('add').onclick=async()=>{
  if(!st.apps.length)return;
  const row=document.createElement('div');row.className='row';

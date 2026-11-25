@@ -1,6 +1,6 @@
 {
   "name": "koi",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Koi: a springy, fluid fan app switcher for macOS",
   "main": "main.js",
   "author": "Koi",
@@ -21,7 +21,6 @@
       "main.js",
       "preload.js",
       "updater.js",
-      "koi-keys.js",
       "renderer/**",
       "assets/**"
     ],
