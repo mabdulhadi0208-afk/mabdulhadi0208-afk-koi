@@ -89,6 +89,27 @@ function rig(over = {}) {
   // the current app has two windows in front: the first Tab must still go to the previous APP
   const APPS3 = [W(1, { z: 0, pid: 10, app: 'Safari' }), W(2, { z: 1, pid: 10, app: 'Safari' }), W(3, { z: 2, pid: 20, app: 'Notes' }), W(4, { z: 3, pid: 30, app: 'Xcode' }), W(5, { z: 4, pid: 40, app: 'Music' })];
   o = orderWindows(APPS3); ok(o.map(w => w.wid).join() === '1,3,2,4,5', `the previous app's front window comes right after the current window (${o.map(w => w.wid)})`);
+  // ---- 2.1.2: "the app before" comes from the order apps were really used in, not from window stacking ----
+  // you went Notes -> Xcode -> Safari: Safari is current, but a Music window and a Notes window are stacked above Xcode's
+  const STACK = [W(1, { z: 0, pid: 10, app: 'Safari' }), W(5, { z: 1, pid: 40, app: 'Music' }), W(3, { z: 2, pid: 20, app: 'Notes' }), W(4, { z: 3, pid: 30, app: 'Xcode' })];
+  o = orderWindows(STACK, {}, new Map(), [10, 30, 20, 40]);
+  ok(o[0].wid === 1 && o[1].wid === 4, `the app you used before (Xcode) is next, whatever is stacked above it (${o.map(w => w.wid)})`);
+  // the current app's window is not on top (another display, a floating helper window)
+  o = orderWindows(STACK, {}, new Map(), [30, 10]);
+  ok(o[0].wid === 4 && o[1].wid === 1, `the current app goes first even when its window is lower in the stack (${o.map(w => w.wid)})`);
+  // the current app has no window at all (Finder on an empty desktop): the app before still comes first in line
+  o = orderWindows(STACK, {}, new Map(), [99, 20, 10]);
+  ok(o[0].wid === 3 && o.curApp === false, `current app without windows: the app before leads (${o.map(w => w.wid)})`);
+  // an app in the history that has since closed all its windows is skipped
+  o = orderWindows(STACK, {}, new Map(), [10, 77, 40]);
+  ok(o[1].wid === 5, `apps with no windows are skipped when looking for the one before (${o.map(w => w.wid)})`);
+  { const r2 = rig({ showDelay: 120 }); r2.sw.start(); r2.ready()
+    r2.open({ windows: STACK, apps: [10, 30, 20] }); await sleep(20); r2.child().say({ ev: 'commit', seq: r2.seq })
+    let g = r2.child().cmds('focus').pop(); ok(g && g.pid === 30, `quick Cmd+Tab lands on the app used before (pid ${g && g.pid})`)
+    r2.open({ windows: STACK, apps: [99, 20, 10] }); await sleep(20); r2.child().say({ ev: 'commit', seq: r2.seq })
+    g = r2.child().cmds('focus').pop(); ok(g && g.pid === 20, `from an app with no windows, a quick Cmd+Tab still lands on the app before (pid ${g && g.pid})`)
+    r2.open({ windows: STACK }); await sleep(20); r2.child().say({ ev: 'commit', seq: r2.seq })
+    g = r2.child().cmds('focus').pop(); ok(g && g.wid === 5, `an older helper without the app list still works the old way (wid ${g && g.wid})`) }
   let q = rig({ showDelay: 120 }); q.sw.start(); q.ready();
   q.open({ windows: APPS3 }); await sleep(30); q.child().say({ ev: 'commit', seq: q.seq });
   f = q.child().cmds('focus').pop();

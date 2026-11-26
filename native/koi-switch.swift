@@ -162,6 +162,24 @@ func tapCallback(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent, refc
     return Unmanaged.passUnretained(event)
 }
 
+// apps in the order they were last made active, newest first, from macOS's own activation events (no polling).
+// Sent with every open so a quick Cmd+Tab goes to the app you used before, whatever the window stacking says.
+var appMRU: [Int32] = []
+let mruLock = NSLock()
+func noteActive(_ pid: Int32) {
+    if pid == getpid() || pid == parentPid { return }
+    mruLock.lock(); appMRU.removeAll { $0 == pid }; appMRU.insert(pid, at: 0)
+    if appMRU.count > 64 { appMRU.removeLast(appMRU.count - 64) }
+    mruLock.unlock()
+}
+func appOrder() -> [Int32] {
+    // the frontmost app is asked for right now, so the list is right even if a notification was missed
+    if let f = NSWorkspace.shared.frontmostApplication { noteActive(f.processIdentifier) }
+    mruLock.lock(); let r = appMRU; mruLock.unlock()
+    let live = Set(NSWorkspace.shared.runningApplications.map { $0.processIdentifier })
+    return r.filter { live.contains($0) }
+}
+
 func openNow(shift: Bool) {
     seq += 1
     if wantNativeOff() { setNative(enabled: false) }   // re-assert: an old helper (Koi updating) may have switched it back on
@@ -171,9 +189,10 @@ func openNow(shift: Bool) {
     ackItem = item
     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: item)
     let t0 = Date()
+    let apps = appOrder()
     listQ.async {
         let wins = listWindows(icons: true)
-        emit(["ev": "open", "seq": s, "shift": shift, "windows": wins, "age": Int(Date().timeIntervalSince(t0) * 1000)])
+        emit(["ev": "open", "seq": s, "shift": shift, "windows": wins, "apps": apps, "age": Int(Date().timeIntervalSince(t0) * 1000)])
     }
 }
 
@@ -594,6 +613,11 @@ let reader = Thread {
     DispatchQueue.main.async { shutdown(0) }
 }
 reader.start()
+
+if let f = NSWorkspace.shared.frontmostApplication { noteActive(f.processIdentifier) }
+NSWorkspace.shared.notificationCenter.addObserver(forName: NSWorkspace.didActivateApplicationNotification, object: nil, queue: .main) { n in
+    if let a = n.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication { noteActive(a.processIdentifier) }
+}
 
 DispatchQueue.main.async {
     startTap()

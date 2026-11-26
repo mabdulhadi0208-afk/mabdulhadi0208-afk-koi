@@ -9,8 +9,9 @@
 //
 // Rules:
 //  - The panel opens from the window list that arrives WITH the open event: no round trip before the first frame.
-//  - The first Tab selects the most recently used window of a DIFFERENT app (moved to index 1), so a quick Cmd+Tab
-//    tap-and-release lands on the app you used before, like macOS and Windows. Shift+Tab from closed selects the last.
+//  - The first Tab selects the front window of the app you used before this one (moved to index 1), so a quick
+//    Cmd+Tab tap-and-release lands on it, like macOS and Windows. "Before" comes from the order you really used apps
+//    in (the helper's apps list, from macOS activation events), not from how windows happen to be stacked. Shift+Tab from closed selects the last.
 //  - The panel only appears if Command is still held SHOW_DELAY ms after the Tab press (like macOS): a quick tap
 //    switches instantly with no flash. A commit that arrives before the open (or before the panel showed) switches
 //    straight away without ever showing the panel.
@@ -25,15 +26,37 @@ const fileUrl = f => f ? pathToFileURL(f).href : '';
 
 // most recently used first: visible windows of this Space in z-order (macOS keeps that order as you use them),
 // then the rest (minimized, hidden, other Spaces) by when Koi last switched to them, then by z-order
-function orderWindows(wins, opts = {}, mru = new Map()) {
+// apps: the pids of apps in the order you last used them, newest first (the helper hears it from macOS as you switch
+// apps any way at all: Cmd+Tab, clicks, the Dock), with the app you are in first. When it is there it decides who is
+// current and who is "the app before", which window stacking alone gets wrong (other displays, small helper windows,
+// an app whose window sits behind another one).
+function orderWindows(wins, opts = {}, mru = new Map(), apps = null) {
   const scope = opts.scope || 'all', withMin = opts.minimized !== false;
   const keep = (wins || []).filter(w => w && w.wid && (withMin || !w.min) && (scope === 'all' || w.onscreen || w.min || w.hidden));
   const front = keep.filter(w => w.onscreen && !w.min && !w.hidden).sort((a, b) => a.z - b.z);
   const back = keep.filter(w => !(w.onscreen && !w.min && !w.hidden)).sort((a, b) => (mru.get(b.wid) || 0) - (mru.get(a.wid) || 0) || a.z - b.z);
   const list = front.concat(back);
-  // the previous app goes right after the current window: the first Tab, and a quick tap, land on it
+  if (Array.isArray(apps) && apps.length && list.length) {
+    const cur = apps[0];
+    // the current app's front window first (if it has one)
+    const c = list.findIndex(w => w.pid === cur);
+    if (c > 0) list.unshift(list.splice(c, 1)[0]);
+    // then the front window of the most recently used other app that has a window
+    for (const pid of apps.slice(1)) {
+      if (pid === cur) continue;
+      const k = list.findIndex(w => w.pid === pid);
+      if (k < 0) continue;
+      const at = c >= 0 ? 1 : 0;
+      if (k !== at) list.splice(at, 0, list.splice(k, 1)[0]);
+      break;
+    }
+    list.curApp = c >= 0;
+    return list;
+  }
+  // no app history from the helper (an older helper): the previous app goes right after the current window
   const k = list.findIndex((w, i) => i > 0 && list[0] && w.pid !== list[0].pid);
   if (k > 1) list.splice(1, 0, list.splice(k, 1)[0]);
+  list.curApp = true;
   return list;
 }
 
@@ -165,10 +188,11 @@ class Switcher {
     const c = this.cfg();
     const no = () => this.send({ cmd: 'active', on: false });
     if (!c.enabled || (this.o.blocked && this.o.blocked())) return no();
-    const list = orderWindows(m.windows, c, this.mru);
+    const list = orderWindows(m.windows, c, this.mru, m.apps);
     if (!list.length) return no();
     this.list = list; this.opens++;
-    this.sel = list.length > 1 ? (m.shift ? list.length - 1 : 1) : 0;
+    // the app you are in has no window (Finder on an empty desktop, say): the first Tab lands on the app before it
+    this.sel = m.shift ? list.length - 1 : list.length > 1 && list.curApp !== false ? 1 : 0;
     this.open = true; this.shown = false;
     this.o.onOpen && this.o.onOpen();
     for (const e of early) { this.msg(e); if (!this.open) return; }   // Tab, Tab, release all before the open landed
