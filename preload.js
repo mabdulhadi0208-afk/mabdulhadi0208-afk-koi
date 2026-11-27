@@ -10,7 +10,7 @@ contextBridge.exposeInMainWorld('koiAPI',{
   iconBad:p=>ipcRenderer.send('koi:iconBad',p),
   launch:(p,n)=>ipcRenderer.send('koi:launch',p,n),
   action:(k,p,n)=>ipcRenderer.send('koi:action',k,p,n),
-  tourDone:()=>ipcRenderer.send('koi:tourDone'),
+  tourDone:k=>ipcRenderer.send('koi:tourDone',k==='new'?'new':'tour'),
   s:{
     get:()=>ipcRenderer.invoke('koi:s:get'),
     pause:()=>ipcRenderer.invoke('koi:s:pause'),

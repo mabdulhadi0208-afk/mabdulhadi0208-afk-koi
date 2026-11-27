@@ -179,6 +179,17 @@ body.ov .wall,body.ov .menubar,body.ov .hero,body.ov .ctl,body.ov #film,body.ov 
 .wn em{flex:none;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font:900 15px/1 var(--head);font-style:normal;color:#fff;background:radial-gradient(circle at 32% 18%,rgba(255,255,255,.6),transparent 46%),var(--c);box-shadow:inset 0 1px 0 rgba(255,255,255,.5),0 10px 20px -8px var(--c)}
 .wn span{font-size:13.5px;opacity:.86;line-height:1.38}.wn b{display:block;font:800 16px/1.15 var(--head);letter-spacing:-.02em;margin-bottom:3px}
 @keyframes jel{to{opacity:1;transform:none}}
+.wn .odo{font-size:inherit;line-height:inherit;opacity:1;display:inline-grid;vertical-align:bottom;overflow:hidden;padding:0 .05em .1em;margin-bottom:-.1em}
+.odo>i{grid-area:1/1;display:inline-flex}
+.odo i{font-style:normal}
+.odo i{background:linear-gradient(180deg,#fff 30%,#d6e2ff 70%,#e3b8ff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.odo .was{animation:odout .55s cubic-bezier(.55,0,.75,.2) .55s forwards}
+.odo .now{background:none}
+.odo .now i{display:inline-block;opacity:0;transform:translateY(105%) scale(.9);animation:odin .8s cubic-bezier(.3,1.5,.5,1) forwards}
+@keyframes odout{to{opacity:0;transform:translateY(-105%) scale(.92)}}
+@keyframes odin{to{opacity:1;transform:none}}
+.wn>i.sheen{position:absolute;top:-8%;bottom:-8%;left:0;width:22%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.14) 45%,rgba(214,226,255,.22) 50%,transparent);opacity:0;transform:translateX(-130%) skewX(-18deg);animation:sheen 1.6s cubic-bezier(.45,0,.2,1) 1.2s forwards;pointer-events:none;z-index:2}
+@keyframes sheen{0%{opacity:0;transform:translateX(-130%) skewX(-18deg)}18%{opacity:1}100%{opacity:0;transform:translateX(560%) skewX(-18deg)}}
 .mkw{position:absolute;top:0;left:0;right:0;display:flex;flex-direction:column;align-items:flex-end;padding:56px 7vw 0;pointer-events:none}
 .mkb{position:fixed;top:7vh;left:0;right:0;height:26px;background:rgba(10,12,21,.6);display:flex;justify-content:flex-end;gap:14px;padding:4px 22px;align-items:center}
 .mkb span{width:18px;height:10px;border-radius:3px;background:rgba(255,255,255,.3)}.mkb .mf{background:none;width:auto;height:auto}
@@ -495,7 +506,7 @@ if(OV&&API){
 // ================= the film (first run + Replay the tour) =================
 const FS=window.__FS||1;
 const F=$('#film'),bk=$('#bk'),scene=$('#scene'),cap=$('#cap'),fc=$('#fc'),kc=$('#kc'),pg=$('#pg');
-let cancel=false,fx=0,fy=0,runId=0;
+let cancel=false,fx=0,fy=0,runId=0,SHORT=false;
 const sleep=ms=>new Promise((r,j)=>setTimeout(()=>cancel?j('x'):r(),ms*FS));
 const rf=()=>new Promise(r=>requestAnimationFrame(r));
 let FSND=false,MG=null,RV=null,chordT=null;
@@ -517,12 +528,14 @@ const later=(ms,f)=>setTimeout(()=>{if(!cancel)f()},ms);
 const POOLS='<div class="pools"><i class="a"></i><i class="b"></i><i class="c"></i><i class="d"></i></div>';
 function gate(){S.film=true;F.style.display='block';bk.style.transition='none';bk.style.opacity=1;scene.innerHTML=POOLS+'<div class="brand"><div class="mk">'+logo(150)+'</div><p style="animation:none;opacity:1;font-size:18px;margin-top:4px">The Koi 2.1 film</p><div class="btns" style="animation:none;opacity:1"><button class="pr" id="g1">Play with sound</button><button id="g0">Play without sound</button></div></div>';$('#g1').onclick=()=>playFilm(true);$('#g0').onclick=()=>playFilm(false)}
 
-const KV=(()=>{const q=new URLSearchParams(location.search).get('v');if(q)return q;const v='__KOI_VERSION__';return v.indexOf('__')===0?'2.1.2':v})();
+const KV=(()=>{const q=new URLSearchParams(location.search).get('v');if(q)return q;const v='__KOI_VERSION__';return v.indexOf('__')===0?'2.1.3':v})();
+const FROM=(new URLSearchParams(location.search).get('from')||'').replace(/[^0-9a-z.\-]/gi,'').slice(0,20);
 // What's new: only this version's changes
 const WHATS_NEW=[
- ['01','Cmd+Tab goes to the app you really used last','Koi now follows the order you actually switch apps in, by Cmd+Tab, a click or the Dock, so a quick tap always lands on the app before.','#e0559a'],
- ['02','Right on every setup','Two displays, apps that sit behind other windows, little helper windows: none of them can steal the spot of your last app any more.','#5b8cff'],
- ['03','Even from an empty desktop','In an app with no windows open, like Finder, the first Tab still goes straight to the app you were in before.','#13c1cd']];
+ ['01','What is new plays by itself','After every update, Koi opens straight into what changed, once per version. Nothing to dig for, and it never repeats.','#e0559a'],
+ ['02','The version rolls over','A new moment in the film: the old version number rolls up and away, the new one springs in, and a light sweep glides across.','#5b8cff'],
+ ['03','Replay it any time','What\u2019s new sits in the menu-bar panel now, next to Replay tour, for a quick look at the latest changes.','#13c1cd'],
+ ['04','A brand new icon','The Koi fan in full colour: five petals around a pearl, on a deep plum tile. The same icon as on the website.','#f5b82e']];
 const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
 const STEPS=15;
 function say(n,t,d){cap.classList.remove('in');void cap.offsetWidth;cap.style.opacity='';cap.querySelector('.n').textContent='STEP '+n+' OF '+STEPS;cap.querySelector('.cw').textContent=n;cap.querySelector('b').textContent=t;cap.querySelector('p').textContent=d;cap.classList.add('in');pg.style.transform=`scaleX(${parseInt(n,10)/STEPS})`;bell(784,.03,1.4);whoosh(.025)}
@@ -535,7 +548,7 @@ function wp(name){const a=APPS.find(x=>x.name===name),i=S.list.indexOf(a),n=S.li
 const cen=el=>{const r=el.getBoundingClientRect();return[r.left+r.width/2,r.top+r.height/2]};
 const kd=k=>window.dispatchEvent(new KeyboardEvent('keydown',{key:k,code:k==='Space'?'Space':'Key'+k.toUpperCase(),bubbles:true}));
 function MK(k){const bar='<div class="mkb"><span></span><span></span><span class="mf">'+logo(16)+'</span></div>';
- const c={pop:'<div class="mkc"><div class="hh" style="--c1:#5b8cff;--c2:#a66be3"><i></i><b>Koi</b></div><div class="r big">Open the fan <kbd>⌥ Space</kbd></div><div class="r"><span>Theme</span><u>Dark / Light</u></div><div class="r"><span>Size</span><u>S  M  B  XL</u></div><div class="r"><span>Sounds</span><u class="tg"></u></div></div>',
+ const c={pop:'<div class="mkc"><div class="hh" style="--c1:#5b8cff;--c2:#a66be3"><i></i><b>Koi</b></div><div class="r big">Open the fan <kbd>⌥ Space</kbd></div><div class="r"><span>Theme</span><u>Dark / Light</u></div><div class="r"><span>Size</span><u>S  M  B  XL</u></div><div class="r"><span>Sounds</span><u class="tg"></u></div><div class="r"><span>What\u2019s new</span><u>in '+esc(KV)+'</u></div></div>',
  hk:'<div class="mkc"><div class="hh" style="--c1:#8b5cf6;--c2:#13c1cd"><i></i><b>Hotkeys</b></div><div class="r"><span>Open the fan</span><kbd>⌥ Space</kbd></div><div class="r"><span>Safari</span><kbd>⌃ ⌥ S</kbd></div><div class="r"><span>Terminal</span><kbd>⌃ ⌥ T</kbd></div><div class="r"><span>Notes</span><kbd>⌘ ⌥</kbd></div></div>',
  sw:'<div class="mksw"><span class="rim"></span>'+[['Safari','#5b8cff'],['Notes','#ffb547'],['Xcode','#13c1cd'],['Music','#f4679b']].map(a=>'<div class="t" style="--c:'+a[1]+'">'+a[0]+'<i></i></div>').join('')+'</div>',
  up:'<div class="mkc"><div class="hh" style="--c1:#5b8cff;--c2:#f4679b"><i></i><b>Update ready</b></div><div class="r"><span>Koi '+esc(KV)+' to the next one</span></div><div class="pbar"><em></em></div><div class="r big">Restart and update</div></div>'}[k];
@@ -558,11 +571,20 @@ async function intro(){
  scene.innerHTML=POOLS+'<div class="beam"></div><div class="brand" style="position:absolute;left:0;right:0;top:9vh"><div class="ver" style="font-size:72px"><span style="animation-delay:.1s">Every window.</span> <em style="animation-delay:.45s">One Tab.</em></div></div>'+MK('sw');
  key('\u2318 Tab',3800);
  await sleep(5000);
- // 3. what is new in this version, as glowing hero cards
- scene.innerHTML=POOLS+'<div class="wn"><h2><small>What is new</small>Koi '+esc(KV)+'</h2>'+WHATS_NEW.map((w,i)=>'<div style="--c:'+w[3]+';animation-delay:'+(.25+i*.22)+'s"><em>'+w[0]+'</em><span><b>'+w[1]+'</b>'+w[2]+'</span></div>').join('')+'</div>';
- bell(880,.05,2);WHATS_NEW.forEach((w,i)=>later(250+i*220,()=>bell(660+i*90,.035,1.4)));
- await sleep(5200);
- scene.style.transition='opacity 1.1s';scene.style.opacity=0;bk.style.opacity=0;
+ // 3. what is new in this version
+ await whatsNew(false);
+}
+// What is new, as glowing hero cards. The version rolls over like an odometer (the old number rolls up and away, the
+// new one springs in digit by digit), then a light sweep glides across the cards. Transform and opacity only.
+// short: the cut that plays by itself after an update (What is new, then the outro).
+async function whatsNew(short){
+ if(short){pad(CH.A,7,.03);startChords();riser(.5,.08);later(420,()=>boom(.55))}
+ const was=short&&FROM&&FROM!==KV,d0=was?.95:.35;
+ const odo='<span class="odo">'+(was?'<i class="was">'+esc(FROM)+'</i>':'')+'<i class="now">'+[...String(KV)].map((c,i)=>'<i style="animation-delay:'+(d0+i*.06).toFixed(2)+'s">'+esc(c)+'</i>').join('')+'</i></span>';
+ scene.innerHTML=POOLS+(short?'<div class="beam"></div>':'')+'<div class="wn"><i class="sheen"></i><h2><small>'+(short?'Just updated. What is new':'What is new')+'</small>Koi '+odo+'</h2>'+WHATS_NEW.map((w,i)=>'<div style="--c:'+w[3]+';animation-delay:'+(.25+(short?.5:0)+i*.22)+'s"><em>'+w[0]+'</em><span><b>'+w[1]+'</b>'+w[2]+'</span></div>').join('')+'</div>';
+ bell(880,.05,2);if(was)later(550,()=>whoosh(.04));later(d0*1000,()=>bell(1046,.045,1.8));WHATS_NEW.forEach((w,i)=>later(250+(short?500:0)+i*220,()=>bell(660+i*90,.035,1.4)));later(1250,()=>whoosh(.03));
+ await sleep(short?6200:5200);
+ scene.style.transition='opacity 1.1s';scene.style.opacity=0;if(!short)bk.style.opacity=0;
  await sleep(1300);scene.innerHTML='';scene.style.opacity=1;
 }
 async function tutorial(){
@@ -593,7 +615,7 @@ async function tutorial(){
  scene.innerHTML=MK('hk');await sleep(4200);
  say('10','Every window, one Tab away','Tap Command Tab to jump straight back to the app you really used last. Keep holding and every window fans out: each Tab glides to the next, and letting go lands on it.');
  key('\u2318 Tab',3600);scene.innerHTML=MK('sw');await sleep(4800);
- say('11','Updates itself','Koi checks quietly, downloads, then swaps itself in with one click. Your settings come along.');
+ say('11','Updates itself','Koi checks quietly, downloads, then swaps itself in with one click. Your settings come along, and What is new plays once so you see what changed.');
  scene.innerHTML=MK('up');await sleep(4200);
  scene.innerHTML='';open();await sleep(900);
  say('12','Dark and light','Ink glass at night, porcelain glass by day, just like Lumen.');
@@ -607,31 +629,31 @@ async function tutorial(){
  {const[x,y]=wp('Terminal');await glide(x,y,1100);await sleep(700);key('Return',900);kd('Enter');await sleep(2600)}
  nocap();fc.style.opacity=0;pg.style.transform='scaleX(1)';
 }
-async function outro(){
+async function outro(short){
  close();await sleep(500);bk.style.opacity=.9;await sleep(1300);
  [0,650,1300,1950].forEach((ms,i)=>later(ms,()=>{hit(110+i*18,.55);bell(330*(1+i*.2),.06,1.6)}));
  scene.innerHTML=POOLS+'<div class="words"><div style="animation-delay:0s,2.5s">Fan.</div><div style="animation-delay:.65s,2.5s">Point.</div><div style="animation-delay:1.3s,2.5s">Type.</div><div style="animation-delay:1.95s,2.5s">Launch.</div></div>';
  await sleep(3800);
  riser(.7,.11);later(520,()=>boom(.8));[[500,440],[660,523],[820,659]].forEach(([ms,f])=>later(ms,()=>bell(f,.08,3)));later(1250,()=>bell(1318,.05,3.5));pad(CH.big,9,.04);
- scene.innerHTML=POOLS+'<div class="beam"></div><div class="wmk">'+logo('100%',false,true)+'</div><div class="brand"><div class="mk">'+logo(130,true)+'</div><div class="ver"><span style="animation-delay:.3s">K</span><span style="animation-delay:.42s">o</span><span style="animation-delay:.54s">i</span></div><p>Every app, one flick away.</p><div class="btns"><button id="rp">Replay the tour</button><button class="pr" id="st">Start using Koi</button></div></div>';
+ scene.innerHTML=POOLS+'<div class="beam"></div><div class="wmk">'+logo('100%',false,true)+'</div><div class="brand"><div class="mk">'+logo(130,true)+'</div><div class="ver"><span style="animation-delay:.3s">K</span><span style="animation-delay:.42s">o</span><span style="animation-delay:.54s">i</span></div><p>Every app, one flick away.</p><div class="btns"><button id="rp">'+(short?'Watch the full tour':'Replay the tour')+'</button><button class="pr" id="st">'+(short?'Done':'Start using Koi')+'</button></div></div>';
  bk.style.opacity=.98;
- $('#rp').onclick=()=>playFilm(FSND);$('#st').onclick=()=>{endFilm();if(API)API.tourDone()};
+ $('#rp').onclick=()=>playFilm(FSND);$('#st').onclick=()=>{endFilm();if(API)API.tourDone(MODE)};
  pg.style.transform='scaleX(0)';
 }
 function endFilm(){cancel=true;stopAudio(.8);F.classList.remove('on');bk.style.opacity=0;setTimeout(()=>{F.style.display='none';document.body.classList.remove('film');S.film=false;scene.innerHTML='';nocap();fc.style.opacity=0},1100);S.mx=S.my=0;S.hp=false;if(S.open)close();kc.classList.remove('in')}
-async function playFilm(snd){
- if(snd!==undefined)FSND=!!snd;
+async function playFilm(snd,short){
+ if(snd!==undefined)FSND=!!snd;SHORT=!!short;
  cancel=true;await new Promise(r=>setTimeout(r,60));cancel=false;const id=++runId;
  if(FSND&&fsetup()){if(S.sndPrev===undefined)S.sndPrev=S.snd;S.snd=true;preload()}else FSND=false;
  S.film=true;document.body.classList.add('film');F.style.display='block';void F.offsetWidth;F.classList.add('on');
  if(S.open)close();setTheme('dark');[...$('#th').children].forEach((x,i)=>x.classList.toggle('on',i===0));
  bk.style.transition='none';bk.style.opacity=1;void bk.offsetWidth;bk.style.transition='';scene.style.opacity=1;pg.style.transform='scaleX(0)';nocap();
- try{await intro();await tutorial();await outro()}catch(e){if(id===runId&&e==='x'&&cancel){}}
+ try{if(short)await whatsNew(true);else{await intro();await tutorial()}await outro(!!short)}catch(e){if(id===runId&&e==='x'&&cancel){}}
 }
-$('#skip').onclick=()=>{endFilm();if(API&&MODE==='tour')API.tourDone()};
+$('#skip').onclick=()=>{endFilm();if(API&&(MODE==='tour'||MODE==='new'))API.tourDone(MODE)};
 addEventListener('keydown',e=>{if(S.film&&e.isTrusted&&e.key==='Escape')endFilm()});
 $('#tour').onclick=e=>{e.stopPropagation();playFilm(FSND)};
-window.KOIFILM={play:playFilm,end:endFilm,st:()=>({f:FSND,ac:AC&&AC.state,snd:S.snd,mg:!!MG,prev:S.sndPrev})};
-if(!OV){filt();targets();if(API||window.__FS)playFilm(!!API);else gate()}
+window.KOIFILM={play:playFilm,end:endFilm,st:()=>({short:SHORT,f:FSND,ac:AC&&AC.state,snd:S.snd,mg:!!MG,prev:S.sndPrev})};
+if(!OV){filt();targets();if(API||window.__FS)playFilm(!!API,MODE==='new');else gate()}
 })();
 </script><script>if(!window.koiAPI){const a=document.createElement('a');a.className='dl-btn';a.href='https://github.com/mabdulhadi0208-afk/mabdulhadi0208-afk-koi/releases/latest/download/Koi-mac-arm64.dmg';a.target='_blank';a.textContent='Download Koi for Mac';document.body.appendChild(a)}</script></body></html>

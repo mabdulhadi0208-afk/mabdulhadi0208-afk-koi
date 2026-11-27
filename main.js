@@ -8,7 +8,7 @@ const updater=require('./updater');
 const {Switcher}=require('./switcher');
 
 let tray=null,overlay=null,tour=null,settingsWin=null,aboutWin=null,popWin=null,popShown=false,lastPopHide=0,trayFrames=[],trayTimer=null,shown=false,lastToggle=0,hideT=null;
-const DEF={theme:'dark',size:1,speed:1.3,sound:false,shortcut:'Alt+Space',hotkeys:[],tourSeen:false,usage:{},autoDownload:true,updateCard:true,skipped:null,
+const DEF={theme:'dark',size:1,speed:1.3,sound:false,shortcut:'Alt+Space',hotkeys:[],tourSeen:false,newSeen:'',usage:{},autoDownload:true,updateCard:true,skipped:null,
   switcher:true,switchReplace:true,switchScope:'all',switchMinimized:true,swScreenAsked:false};
 let S={...DEF};
 const SF=()=>path.join(app.getPath('userData'),'koi-settings.json');
@@ -163,12 +163,14 @@ function warmOverlay(){
   noNap();napLater();try{overlay.webContents.send('koi:warm')}catch(e){}
 }
 function toggle(){if(sw&&sw.isOpen())return;const t=Date.now();if(t-lastToggle<250)return;lastToggle=t;shown?hideOverlay():showOverlay()}
-function openTour(){
+// mode 'tour': the whole film (first run, Replay tour). mode 'new': the short cut, What is new and the outro, played by
+// itself once after Koi updates to a new version, and from What's new in the menu-bar panel.
+function openTour(mode='tour',from=''){
   if(tour&&!tour.isDestroyed()){tour.focus();return}
   tour=new BrowserWindow({width:1280,height:800,minWidth:900,minHeight:600,titleBarStyle:'hiddenInset',backgroundColor:'#0a0c15',show:false,
     webPreferences:{preload:path.join(__dirname,'preload.js'),contextIsolation:true,nodeIntegration:false,autoplayPolicy:'no-user-gesture-required'}});
   tour.once('ready-to-show',()=>tour.show());
-  tour.loadFile(path.join(__dirname,'renderer','app.html'),{query:{mode:'tour',v:app.getVersion()}});
+  tour.loadFile(path.join(__dirname,'renderer','app.html'),{query:{mode:mode==='new'?'new':'tour',v:app.getVersion(),from:String(from||'')}});
   tour.on('closed',()=>{tour=null});
 }
 
@@ -399,6 +401,7 @@ ipcMain.on('pop:action',(_e,a)=>{
   if(a==='open'){hidePopover();setTimeout(()=>showOverlay(),200)}
   else if(a==='hotkeys'){hidePopover();openSettings()}
   else if(a==='tour'){hidePopover();openTour()}
+  else if(a==='whatsnew'){hidePopover();openTour('new')}
   else if(a==='about'){hidePopover();openAbout()}
   else if(a==='update'){updater.actions.check()}
   else if(a==='download'){updater.actions.download()}
@@ -446,9 +449,10 @@ ipcMain.handle('koi:s:update',(_e,i,acc)=>{
   S.hotkeys[i].acc=acc;saveSoon();reg();return {ok:true};
 });
 ipcMain.handle('koi:s:remove',(_e,i)=>{S.hotkeys.splice(i,1);saveSoon();reg();return {ok:true}});
-ipcMain.on('koi:tourDone',()=>{
-  S.tourSeen=true;saveSoon();
+ipcMain.on('koi:tourDone',(_e,kind)=>{
+  const wasSeen=S.tourSeen;S.tourSeen=true;S.newSeen=app.getVersion();saveSoon();
   if(tour&&!tour.isDestroyed())tour.close();
+  if(kind==='new'&&wasSeen)return;            // What is new after an update: no "Koi is ready" notice
   try{new Notification({title:'Koi is ready',body:`Press ${label()} anywhere and your apps fan out around the cursor. Koi lives in the menu bar.`}).show()}catch(e){}
 });
 
@@ -573,6 +577,15 @@ ipcMain.handle('koi:s:sw',(_e,k,v)=>{
 function swSettings(){return {on:S.switcher!==false,replace:S.switchReplace!==false,scope:S.switchScope==='space'?'space':'all',minimized:S.switchMinimized!==false,supported:SW_OK,status:sw.status,perm:sw.perm}}
 
 // ---------- lifecycle ----------
+// First launch of a fresh install: the whole film, as before (it already holds What is new). After that, the first launch
+// on a new version plays the short What is new cut by itself, once: the version is written down before it plays, so
+// closing it early or quitting never brings it back on the same version.
+function whatsNewGate(){
+  const v=app.getVersion(),from=S.newSeen||'';
+  if(!S.tourSeen){if(S.newSeen!==v){S.newSeen=v;saveSoon()}openTour();return 'tour'}
+  if(from===v)return '';
+  S.newSeen=v;saveSoon();openTour('new',from);return 'new';
+}
 app.whenReady().then(()=>{
   load();
   if(app.dock)app.dock.hide();
@@ -584,10 +597,10 @@ app.whenReady().then(()=>{
   setTimeout(()=>prewarm().catch(e=>console.error('prewarm',e&&e.message)),1200);
   try{const {powerMonitor}=require('electron');['resume','unlock-screen'].forEach(ev=>powerMonitor.on(ev,()=>setTimeout(()=>{resetKeys();if(ev==='resume'&&hookOk)stopHook();reg();if(SW_OK&&S.switcher!==false)sw.revive()},1500)));}catch(e){}   // a fresh tap after sleep; key-ups lost while asleep are dropped
   setTimeout(reg,3000);setTimeout(reg,9000);
-  if(!S.tourSeen)openTour();
+  whatsNewGate();
   if(process.env.KOI_TEST)global.__koiTest={show:showOverlay,hide:hideOverlay,toggle,
     popover:async({theme}={})=>{if(theme){S.theme=theme}showPopover();await new Promise(r=>setTimeout(r,60));return popWin},hidePopover,
-    updateCard:s=>updater._preview(s),closeCard:()=>updater.actions.close(),about:()=>{openAbout();return aboutWin},
+    updateCard:s=>updater._preview(s),whatsNew:()=>whatsNewGate(),tourWin:()=>tour,closeCard:()=>updater.actions.close(),about:()=>{openAbout();return aboutWin},
     setHotkeys:(sc,hk)=>{S.shortcut=sc;S.hotkeys=hk;reg()},warmN:()=>warmAt,state:()=>({S,catalog:catalog.length,icons:Object.keys(iconIdx).length,hookOk,chords:chords.length,retry:!!retryT,health,probe:!!probeT,evN}),
     sw:{core:sw,win:()=>swWin,card:()=>swCard,cardKind:()=>swCardKind,start:swStart},
     perm:{trust:v=>{trustTest=v},idle:v=>{idleTest=v},key:(t,k,now)=>onKey(t,k,now),fakeHook:()=>{hookLoaded=true;uio={starts:0,start(){this.starts++},stop(){}};return uio},probe:()=>{clearTimeout(probeT);probe()},shortcut:()=>crossCheck(),card:()=>permWin}};

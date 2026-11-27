@@ -41,6 +41,7 @@ html,body{background:transparent;overflow:hidden}
 .grid2 .res{height:48px;font-size:13px;gap:10px}
 .grid2 .res .ri{width:32px;height:32px;border-radius:11px}
 .grid2 .res .ri svg{width:16px;height:16px}
+.grid2 .res.wide{grid-column:1/-1}
 .foot{display:flex;justify-content:space-between;align-items:center;height:40px;margin:6px 0 -2px;padding:0 10px;border-radius:0 0 22px 22px;background:linear-gradient(180deg,transparent,color-mix(in srgb,var(--accent) 10%,transparent));font:650 11px var(--font);color:var(--fg3)}
 .foot b{font:850 13px var(--display);letter-spacing:-.02em;background:linear-gradient(120deg,var(--c-cyan),var(--accent),var(--c-violet));-webkit-background-clip:text;background-clip:text;color:transparent}
 .foot a{color:var(--fg2);cursor:default}.foot a:hover{color:var(--fg)}
@@ -61,6 +62,7 @@ html,body{background:transparent;overflow:hidden}
  <div class="res it" id="r-auto" style="--ic:#10b981"><div class="ri"><svg viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 19h14"/></svg></div>Download updates<div class="tg" id="t-auto"><i></i></div></div>
  <div class="res it" data-a="hotkeys" style="--ic:#2f7bff"><div class="ri"><svg viewBox="0 0 24 24"><path d="M9 6a3 3 0 1 0-3 3h12a3 3 0 1 0-3-3v12a3 3 0 1 0 3-3H6a3 3 0 1 0 3 3z"/></svg></div>Hotkeys<span class="r" id="hkr"></span></div>
  <div class="grid2 it">
+  <div class="res wide" data-a="whatsnew" id="r-new" style="--ic:#e0559a"><div class="ri"><svg viewBox="0 0 24 24"><path d="M12 3.5l2.2 5.3 5.3 2.2-5.3 2.2L12 18.5l-2.2-5.3L4.5 11l5.3-2.2z"/></svg></div>What's new<span class="r" id="wnr"></span></div>
   <div class="res" data-a="tour" style="--ic:#a24bf5"><div class="ri"><svg viewBox="0 0 24 24"><path d="M8 5.5v13l10-6.5z"/></svg></div>Replay tour</div>
   <div class="res" data-a="update" style="--ic:#0ea5e9"><div class="ri"><svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 1 0-2.3 5.7"/><path d="M20 5v6h-6"/></svg></div>Check now</div>
   <div class="res" data-a="about" style="--ic:#f5a300"><div class="ri"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 11v5.5M12 7.6v.1"/></svg></div>About Koi</div>
@@ -104,6 +106,7 @@ const fmtMB=b=>(b/1048576).toFixed(1)+' MB';
 function render(){
  document.documentElement.classList.toggle('dark',S.theme!=='light');
  $('#ver').textContent='Version '+(S.version||'2.0.0');
+ $('#wnr').textContent=S.version?'in '+S.version:'';
  segs.theme(S.theme);segs.size(S.size);segs.speed(S.speed);tSound.init(S.sound);tLogin.init(S.login);tAuto.init(S.autoDownload);
  const caps=String(S.shortcut||'').split(' ').filter(Boolean).map(k=>`<kbd>${k.replace(/[<>&]/g,'')}</kbd>`).join('');
  $('#ki').innerHTML=caps;$('#hkr').innerHTML=caps;

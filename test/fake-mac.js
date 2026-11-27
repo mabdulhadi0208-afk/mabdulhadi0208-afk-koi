@@ -5,7 +5,7 @@ const { app, nativeImage } = require('electron');
 const fs = require('fs'), path = require('path'), os = require('os'), cp = require('child_process');
 const SIM = process.env.KOI_SIM === '1', THEME = process.env.KOI_THEME || 'dark';
 const ud = fs.mkdtempSync(path.join(os.tmpdir(), 'koi-ud-')); app.setPath('userData', ud);
-fs.writeFileSync(path.join(ud, 'koi-settings.json'), JSON.stringify({ tourSeen: true, migFast: true, theme: THEME, usage: { Safari: 9, Terminal: 7, Notes: 5, Music: 4 } }));
+fs.writeFileSync(path.join(ud, 'koi-settings.json'), JSON.stringify({ tourSeen: true, newSeen: app.getVersion(), migFast: true, theme: THEME, usage: { Safari: 9, Terminal: 7, Notes: 5, Music: 4 } }));
 process.env.KOI_TEST = '1';
 
 // ---- fake /Applications with 60 apps (real dirs, so stat/mtime work) ----
